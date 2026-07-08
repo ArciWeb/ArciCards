@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ArciCards - Zbierka Kartičiek</title>
     <meta name="theme-color" content="#121212">
-    <link rel="manifest" href="manifest.json">
     <link class="apple-touch-icon" href="ArciCards.png">
+    <link rel="manifest" href="manifest.json">
     <style>
         :root {
             --bg-color: #121212;
@@ -526,7 +526,7 @@
         }
 
         function stepTwoPrice() {
-            if(!currentCardImageBase64) { alert('Najprv vložte fotku karty a ideálne vykonajte AI analýzu.'); return; }
+            if(!currentCardImageBase64) { alert('Najprv vložte fotku karty and ideálne vykonajte AI analýzu.'); return; }
             closeModal('addCardModal');
             document.getElementById('priceCardPreview').src = currentCardImageBase64;
             openModal('priceModal');
@@ -738,9 +738,11 @@
                 let imgEl = `<img class="card-img-thumb" src="${card.image || ''}" alt="Card">`;
                 let infoEl = `
                     <div class="card-info-text">
-                        <div><strong>${card.firstName} ${card.lastName}</strong> - ${card.team}</div>
-                        <div style="font-size:0.85rem; color:#aaa;">${card.manufacturer} ${card.set} ${card.year}</div>
-                        <div style="font-size:0.85rem; color:#bbb;">${card.cardImgSymbol} ${card.insert ? '- ' + card.insert : ''}</div>
+                        <div><strong>${card.firstName} ${card.lastName}</strong></div>
+                        <div>${card.team}</div>
+                        <div style="font-size:0.85rem; color:#aaa;">${card.manufacturer} ${card.set}</div>
+                        <div style="font-size:0.85rem; color:#aaa;">${card.year}</div>
+                        <div style="font-size:0.85rem; color:#bbb;">${card.cardImgSymbol} ${card.insert ? '- <span style="font-weight: bold; font-style: italic; color: #fff;">' + card.insert + '</span>' : ''}</div>
                         <div style="margin-top:5px; font-weight:bold; color:var(--accent-color);">${card.price.toFixed(2)} €</div>
                     </div>
                 `;
