@@ -1,11 +1,11 @@
 {
-  "name": "ArciCards Zbierka Kartièiek",
+  "name": "ArciCards",
   "short_name": "ArciCards",
-  "description": "Inteligentná správa a AI analıza športovıch trading kartièiek",
+  "description": "InteligentnÃ¡ sprÃ¡va a AI analizÃ¡ Å¡portovÃ½ch trading kartiÄiek",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#121212",
-  "theme-color": "#121212",
+  "theme_color": "#121212",
   "orientation": "portrait-primary",
   "icons": [
     {

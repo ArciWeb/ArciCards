@@ -6,7 +6,7 @@
     <title>ArciCards - Zbierka Kartičiek</title>
     <meta name="theme-color" content="#121212">
     <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="ArciCards.png">
+    <link class="apple-touch-icon" href="ArciCards.png">
     <style>
         :root {
             --bg-color: #121212;
@@ -283,6 +283,7 @@
             <div class="form-group"><label>Meno</label><input type="text" id="f_firstName"></div>
             <div class="form-group"><label>Priezvisko</label><input type="text" id="f_lastName"></div>
             <div class="form-group"><label>Klub</label><input type="text" id="f_team"></div>
+            <div class="form-group"><label>Liga</label><input type="text" id="f_league_val"></div>
             <div class="form-group"><label>Set</label><input type="text" id="f_set"></div>
             <div class="form-group"><label>Manufaktúra</label><input type="text" id="f_manufacturer"></div>
             <div class="form-group"><label>Číslo sezóny (napr. 2023-24)</label><input type="text" id="f_year"></div>
@@ -316,6 +317,7 @@
             <div class="form-group"><label>Meno</label><input type="text" id="e_firstName"></div>
             <div class="form-group"><label>Priezvisko</label><input type="text" id="e_lastName"></div>
             <div class="form-group"><label>Klub</label><input type="text" id="e_team"></div>
+            <div class="form-group"><label>Liga</label><input type="text" id="e_league_val"></div>
             <div class="form-group"><label>Set</label><input type="text" id="e_set"></div>
             <div class="form-group"><label>Manufaktúra</label><input type="text" id="e_manufacturer"></div>
             <div class="form-group"><label>Číslo sezóny</label><input type="text" id="e_year"></div>
@@ -365,18 +367,47 @@
             });
         }
 
-        // Databáza klubov pre inteligentné ligy
+        // Komplexná databáza klubov pre inteligentné filtre Top líg
         const leagueMapping = {
-            'FC Barcelona': 'Španielsko', 'Real Madrid': 'Španielsko', 'Atletico Madrid': 'Španielsko',
-            'Manchester United': 'Anglicko', 'Arsenal': 'Anglicko', 'Chelsea': 'Anglicko', 'Liverpool': 'Anglicko', 'Manchester City': 'Anglicko',
-            'Bayern Munich': 'Nemecko', 'Borussia Dortmund': 'Nemecko',
-            'Juventus': 'Taliansko', 'AC Milan': 'Taliansko', 'Inter Milan': 'Taliansko',
-            'PSG': 'Francúzsko'
+            // Anglicko (Premier League)
+            'Newcastle': 'Anglicko', 'Newcastle United': 'Anglicko', 'Manchester United': 'Anglicko', 'Arsenal': 'Anglicko', 'Chelsea': 'Anglicko', 'Liverpool': 'Anglicko', 'Manchester City': 'Anglicko', 'Tottenham': 'Anglicko', 'Aston Villa': 'Anglicko', 'West Ham': 'Anglicko', 'Brighton': 'Anglicko', 'Everton': 'Anglicko',
+            // Španielsko (La Liga)
+            'FC Barcelona': 'Španielsko', 'Real Madrid': 'Španielsko', 'Atletico Madrid': 'Španielsko', 'Real Sociedad': 'Španielsko', 'Villarreal': 'Španielsko', 'Sevilla': 'Španielsko', 'Real Betis': 'Španielsko', 'Girona': 'Španielsko',
+            // Nemecko (Bundesliga)
+            'Bayern Munich': 'Nemecko', 'Bayern Munchen': 'Nemecko', 'Borussia Dortmund': 'Nemecko', 'Bayer Leverkusen': 'Nemecko', 'RB Leipzig': 'Nemecko', 'Eintracht Frankfurt': 'Nemecko', 'VfB Stuttgart': 'Nemecko',
+            // Taliansko (Serie A)
+            'Juventus': 'Taliansko', 'AC Milan': 'Taliansko', 'Inter Milan': 'Taliansko', 'AS Roma': 'Taliansko', 'Napoli': 'Taliansko', 'Lazio': 'Taliansko', 'Atalanta': 'Taliansko', 'Fiorentina': 'Taliansko',
+            // Francúzsko (Ligue 1)
+            'PSG': 'Francúzsko', 'Paris Saint-Germain': 'Francúzsko', 'Marseille': 'Francúzsko', 'Monaco': 'Francúzsko', 'Lyon': 'Francúzsko', 'Lille': 'Francúzsko', 'Lens': 'Francúzsko', 'Rennes': 'Francúzsko'
         };
 
-        function getLeagueForTeam(team) {
-            if(!team) return 'Ostatné';
-            return leagueMapping[team] || 'Ostatné';
+        const allowedTopLeagues = ['Anglicko', 'Nemecko', 'Španielsko', 'Francúzsko', 'Taliansko'];
+
+        function getLeagueForTeam(team, fallbackLeague) {
+            if (!team) return 'Ostatné';
+            
+            // 1. Skúsime nájsť presný klub v našej lokálnej mape klubov
+            if (leagueMapping[team]) return leagueMapping[team];
+            
+            // Vyčistenie textu pre lepšiu zhodu
+            const cleanTeam = team.trim().toLowerCase();
+            for (const key in leagueMapping) {
+                if (cleanTeam.includes(key.toLowerCase()) || key.toLowerCase().includes(cleanTeam)) {
+                    return leagueMapping[key];
+                }
+            }
+            
+            // 2. Ak máme detegovanú ligu priamo z AI analýzy, overíme či patrí medzi TOP 5
+            if (fallbackLeague) {
+                const cleanFallback = fallbackLeague.trim().toLowerCase();
+                if (cleanFallback.includes('angli') || cleanFallback.includes('engla') || cleanFallback.includes('premier')) return 'Anglicko';
+                if (cleanFallback.includes('neme') || cleanFallback.includes('germa') || cleanFallback.includes('bundes')) return 'Nemecko';
+                if (cleanFallback.includes('špani') || cleanFallback.includes('spani') || cleanFallback.includes('spain') || cleanFallback.includes('liga')) return 'Španielsko';
+                if (cleanFallback.includes('franc') || cleanFallback.includes('franc') || cleanFallback.includes('france') || cleanFallback.includes('ligue')) return 'Francúzsko';
+                if (cleanFallback.includes('talia') || cleanFallback.includes('italy') || cleanFallback.includes('serie')) return 'Taliansko';
+            }
+
+            return 'Ostatné';
         }
 
         // Globálny stav aplikácie
@@ -444,7 +475,7 @@
                 const cleanDetailsBase64 = detailsBase64.split(',')[1]; 
 
                 const promptText = `Analyze this image of a sports trading card data sheet. Extract the following fields and return strictly as a JSON object, do not wrap in markdown blocks, do not explain. Fields:
-                "firstName", "lastName", "team", "set", "manufacturer", "year", "cardImgSymbol" (this is the Card Number string, which can contain letters or symbols like '125', 'L22'), "insert" (like 'Captain', 'Base', etc., if none leave empty string).`;
+                "firstName", "lastName", "team", "league" (find the league name of the club like Premier League, Bundesliga, La Liga etc.), "set", "manufacturer", "year", "cardImgSymbol" (this is the Card Number string, which can contain letters or symbols like '125', 'L22'), "insert" (like 'Captain', 'Base', etc., if none leave empty string).`;
 
                 const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                     method: 'POST',
@@ -475,6 +506,11 @@
                 document.getElementById('f_firstName').value = parsed.firstName || '';
                 document.getElementById('f_lastName').value = parsed.lastName || '';
                 document.getElementById('f_team').value = parsed.team || '';
+                
+                // Určíme korektnú ligu hneď na začiatku
+                const resolvedLeague = getLeagueForTeam(parsed.team, parsed.league);
+                document.getElementById('f_league_val').value = resolvedLeague;
+                
                 document.getElementById('f_set').value = parsed.set || '';
                 document.getElementById('f_manufacturer').value = parsed.manufacturer || '';
                 document.getElementById('f_year').value = parsed.year || '';
@@ -500,6 +536,7 @@
             const firstName = document.getElementById('f_firstName').value;
             const lastName = document.getElementById('f_lastName').value;
             const team = document.getElementById('f_team').value;
+            const leagueInput = document.getElementById('f_league_val').value;
             const set = document.getElementById('f_set').value;
             const manufacturer = document.getElementById('f_manufacturer').value;
             const year = document.getElementById('f_year').value;
@@ -525,6 +562,7 @@
                 firstName: firstName,
                 lastName: lastName,
                 team: team,
+                league: leagueInput || getLeagueForTeam(team, ""),
                 set: set,
                 manufacturer: manufacturer,
                 year: year,
@@ -556,6 +594,7 @@
             document.getElementById('e_firstName').value = card.firstName;
             document.getElementById('e_lastName').value = card.lastName;
             document.getElementById('e_team').value = card.team;
+            document.getElementById('e_league_val').value = card.league || getLeagueForTeam(card.team, "");
             document.getElementById('e_set').value = card.set;
             document.getElementById('e_manufacturer').value = card.manufacturer;
             document.getElementById('e_year').value = card.year;
@@ -573,6 +612,7 @@
                 card.firstName = document.getElementById('e_firstName').value;
                 card.lastName = document.getElementById('e_lastName').value;
                 card.team = document.getElementById('e_team').value;
+                card.league = document.getElementById('e_league_val').value;
                 card.set = document.getElementById('e_set').value;
                 card.manufacturer = document.getElementById('e_manufacturer').value;
                 card.year = document.getElementById('e_year').value;
@@ -659,14 +699,16 @@
             const onlyCharInNum = document.getElementById('chk-num-char').checked;
 
             let filteredCards = cards.filter(card => {
+                const cardLeague = card.league || getLeagueForTeam(card.team, "");
+
                 if(query) {
-                    const matchText = `${card.firstName} ${card.lastName} ${card.team} ${card.set} ${card.manufacturer} ${card.cardImgSymbol}`.toLowerCase();
+                    const matchText = `${card.firstName} ${card.lastName} ${card.team} ${cardLeague} ${card.set} ${card.manufacturer} ${card.cardImgSymbol}`.toLowerCase();
                     if(!matchText.includes(query)) return false;
                 }
 
                 if(onlyFav && !card.favorite) return false;
 
-                if(selectedLeagues.length > 0 && !selectedLeagues.includes(getLeagueForTeam(card.team))) return false;
+                if(selectedLeagues.length > 0 && !selectedLeagues.includes(cardLeague)) return false;
                 if(selectedClubs.length > 0 && !selectedClubs.includes(card.team)) return false;
 
                 if(selectedManufs.length > 0 && !selectedManufs.includes(card.manufacturer)) return false;
@@ -721,11 +763,26 @@
                 const oldChecked = getSelectedCheckboxes(elementId);
                 container.innerHTML = '';
 
-                const mapValues = cards.map(c => isLeague ? getLeagueForTeam(c.team) : c[cardKey]).filter(Boolean);
-                const uniqueValues = [...new Set(mapValues)];
+                let uniqueValues = [];
+                if (isLeague) {
+                    // Chceme mať fixné top ligy a položku "Ostatné" na konci
+                    uniqueValues = [...allowedTopLeagues, 'Ostatné'];
+                } else {
+                    const mapValues = cards.map(c => c[cardKey]).filter(Boolean);
+                    uniqueValues = [...new Set(mapValues)];
+                }
 
                 uniqueValues.forEach(val => {
-                    const count = currentFiltered.filter(c => (isLeague ? getLeagueForTeam(c.team) : c[cardKey]) === val).length;
+                    const count = currentFiltered.filter(c => {
+                        if (isLeague) {
+                            return (c.league || getLeagueForTeam(c.team, "")) === val;
+                        }
+                        return c[cardKey] === val;
+                    }).length;
+                    
+                    // Ak filter nemá žiadne karty a nie je to vybraný filter, schováme ho (okrem základných líg)
+                    if (count === 0 && !oldChecked.includes(val) && !isLeague) return;
+
                     const item = document.createElement('div');
                     item.className = 'filter-item';
                     const isChecked = oldChecked.includes(val) ? 'checked' : '';
@@ -738,7 +795,7 @@
                 });
             };
 
-            renderFilterGroup('f-league', 'team', true);
+            renderFilterGroup('f-league', 'league', true);
             renderFilterGroup('f-club', 'team');
             renderFilterGroup('f-manuf', 'manufacturer');
             renderFilterGroup('f-set', 'set');
