@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArciCards - Zbierka Kartičiek</title>
+    <meta name="theme-color" content="#121212">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="ArciCards.png">
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --accent-color: #bb86fc;
+            --primary-button: #3700b3;
+            --border-color: #333;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 10px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        h1 { margin: 0; font-size: 1.5rem; }
+
+        button {
+            background-color: var(--accent-color);
+            color: #000;
+            border: none;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 4px;
+        }
+
+        .btn-primary { background-color: #03dac6; }
+        .btn-danger { background-color: #cf6679; color: white; }
+
+        .section {
+            background: var(--card-bg);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Akordeón filtre */
+        .filter-header {
+            background: #2c2c2c;
+            padding: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 5px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .filter-content {
+            display: none;
+            padding: 10px;
+            background: #252525;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .filter-content.active { display: block; }
+
+        .filter-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+
+        .filter-item input { margin-right: 10px; }
+
+        /* Mriežka kariet */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .card-box {
+            background: #222;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+            display: flex;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .card-img-thumb {
+            width: 90px;
+            height: 125px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-right: 12px;
+            background: #333;
+        }
+
+        .card-info-text {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .fav-icon {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 1.5rem;
+            color: #555;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .fav-icon.active { color: #ff4081; }
+
+        /* Modálne okná */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 100;
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            margin: 10% auto;
+            padding: 20px;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 10px; right: 15px;
+            font-size: 1.8rem; cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label { font-size: 0.9rem; margin-bottom: 4px; color: #aaa; }
+        .form-group input, .form-group select {
+            padding: 8px; background: #2b2b2b; border: 1px solid #444; color: #fff; border-radius: 4px;
+        }
+
+        .preview-img-large {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            margin-bottom: 15px;
+            border-radius: 6px;
+        }
+
+        /* Flex rad pre view prepínač */
+        .view-modes {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .view-modes button { background: #333; color: #fff; }
+        .view-modes button.active { background: var(--accent-color); color: #000; }
+
+        .search-bar {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            box-sizing: border-box;
+            background: #222;
+            border: 1px solid #444;
+            color: white;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>ArciCards 🎴</h1>
+        <div>
+            <button onclick="openModal('settingsModal')">⚙️ Nastavenia</button>
+            <button class="btn-primary" onclick="openModal('addCardModal')">+ Pridať kartu</button>
+        </div>
+    </header>
+
+    <input type="text" id="globalSearch" class="search-bar" placeholder="Hľadať meno, klub, set, manufaktúru..." oninput="renderApp()">
+
+    <div style="display:flex; justify-content: space-between; align-items: center; margin-top:10px; flex-wrap: wrap; gap:10px;">
+        <div class="view-modes">
+            <button id="view-both" class="active" onclick="setViewMode('both')">Karta aj Popis</button>
+            <button id="view-card" onclick="setViewMode('card')">Iba Karta</button>
+            <button id="view-info" onclick="setViewMode('info')">Iba Popis</button>
+        </div>
+        
+        <div>
+            <label for="sortSelect">Zoradiť podľa: </label>
+            <select id="sortSelect" onchange="renderApp()" style="padding:5px; background:#333; color:white; border-radius:4px;">
+                <option value="firstName">Mena</option>
+                <option value="team">Klubu</option>
+                <option value="manufacturer">Manufaktúry</option>
+                <option value="set">Setu</option>
+                <option value="year">Sezóny</option>
+                <option value="price">Ceny</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="section" style="padding: 5px;">
+        <h3 style="margin: 5px 10px;">Filtre</h3>
+        <div class="filter-header" onclick="toggleFilter('f-fav')"><span>❤️ Obľúbené</span><span id="f-fav-indicator">▼</span></div>
+        <div id="f-fav" class="filter-content">
+            <div class="filter-item"><input type="checkbox" id="chk-fav" onchange="renderApp()"> Zobraziť iba obľúbené</div>
+        </div>
+
+        <div class="filter-header" onclick="toggleFilter('f-league')"><span>🌍 Liga</span><span id="f-league-indicator">▼</span></div>
+        <div id="f-league" class="filter-content"></div>
+
+        <div class="filter-header" onclick="toggleFilter('f-club')"><span>🛡️ Klub</span><span id="f-club-indicator">▼</span></div>
+        <div id="f-club" class="filter-content"></div>
+
+        <div class="filter-header" onclick="toggleFilter('f-manuf')"><span>🏭 Manufaktúra</span><span id="f-manuf-indicator">▼</span></div>
+        <div id="f-manuf" class="filter-content"></div>
+
+        <div class="filter-header" onclick="toggleFilter('f-set')"><span>📦 Set</span><span id="f-set-indicator">▼</span></div>
+        <div id="f-set" class="filter-content"></div>
+
+        <div class="filter-header" onclick="toggleFilter('f-season')"><span>📅 Sezóna</span><span id="f-season-indicator">▼</span></div>
+        <div id="f-season" class="filter-content"></div>
+
+        <div class="filter-header" onclick="toggleFilter('f-type')"><span>⚡ Ostatné typy</span><span id="f-type-indicator">▼</span></div>
+        <div id="f-type" class="filter-content">
+            <div class="filter-item"><input type="checkbox" id="chk-has-insert" onchange="renderApp()"> Má Insert</div>
+            <div class="filter-item"><input type="checkbox" id="chk-num-char" onchange="renderApp()"> Obsahuje písmeno v čísle karty</div>
+        </div>
+    </div>
+
+    <div class="cards-grid" id="cardsGrid"></div>
+
+    <div id="addCardModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('addCardModal')">&times;</span>
+            <h2>Pridať novú kartičku</h2>
+            
+            <div class="form-group">
+                <label>1. Fotka kartičky (Vzhľad)</label>
+                <input type="file" id="inputCardImg" accept="image/*">
+            </div>
+            <div class="form-group">
+                <label>2. Fotka s detailmi na analýzu (AI)</label>
+                <input type="file" id="inputDetailsImg" accept="image/*">
+            </div>
+
+            <button type="button" class="btn-primary" onclick="analyzeImages()">Spustiť AI Analýzu</button>
+            <span id="aiLoading" style="display:none; margin-left:10px; color: #03dac6;">Analyzujem cez Llama...</span>
+
+            <hr style="border-color:#444; margin:15px 0;">
+
+            <div class="form-group"><label>Meno</label><input type="text" id="f_firstName"></div>
+            <div class="form-group"><label>Priezvisko</label><input type="text" id="f_lastName"></div>
+            <div class="form-group"><label>Klub</label><input type="text" id="f_team"></div>
+            <div class="form-group"><label>Set</label><input type="text" id="f_set"></div>
+            <div class="form-group"><label>Manufaktúra</label><input type="text" id="f_manufacturer"></div>
+            <div class="form-group"><label>Číslo sezóny (napr. 2023-24)</label><input type="text" id="f_year"></div>
+            <div class="form-group"><label>Číslo / Znak karty</label><input type="text" id="f_cardImgSymbol"></div>
+            <div class="form-group"><label>Insert</label><input type="text" id="f_insert"></div>
+
+            <button type="button" onclick="stepTwoPrice()">Pokračovať na zadanie ceny</button>
+        </div>
+    </div>
+
+    <div id="priceModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('priceModal')">&times;</span>
+            <h2>Zadanie ceny kartičky</h2>
+            <img id="priceCardPreview" class="preview-img-large" src="" alt="Náhľad">
+            <div class="form-group">
+                <label>Cena (€)</label>
+                <input type="number" id="f_price" step="0.01" value="0.00">
+            </div>
+            <button class="btn-primary" onclick="saveNewCard()">Uložiť kartu do zbierky</button>
+        </div>
+    </div>
+
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('detailModal')">&times;</span>
+            <h2>Detail a Úprava Kartičky</h2>
+            <img id="detailCardPreview" class="preview-img-large" src="" alt="Náhľad">
+            
+            <input type="hidden" id="edit_id">
+            <div class="form-group"><label>Meno</label><input type="text" id="e_firstName"></div>
+            <div class="form-group"><label>Priezvisko</label><input type="text" id="e_lastName"></div>
+            <div class="form-group"><label>Klub</label><input type="text" id="e_team"></div>
+            <div class="form-group"><label>Set</label><input type="text" id="e_set"></div>
+            <div class="form-group"><label>Manufaktúra</label><input type="text" id="e_manufacturer"></div>
+            <div class="form-group"><label>Číslo sezóny</label><input type="text" id="e_year"></div>
+            <div class="form-group"><label>Číslo / Znak karty</label><input type="text" id="e_cardImgSymbol"></div>
+            <div class="form-group"><label>Insert</label><input type="text" id="e_insert"></div>
+            <div class="form-group"><label>Cena (€)</label><input type="number" id="e_price" step="0.01"></div>
+
+            <div style="display:flex; justify-content: space-between; margin-top:15px;">
+                <button class="btn-primary" onclick="updateCardData()">Uložiť zmeny</button>
+                <button class="btn-danger" onclick="deleteCardClick()">Vymazať kartu</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('settingsModal')">&times;</span>
+            <h2>Nastavenia aplikácie</h2>
+            
+            <div class="form-group">
+                <label>Groq API Kľúč</label>
+                <input type="password" id="groqApiKey" placeholder="gsk_..." onchange="localStorage.setItem('groq_api_key', this.value)">
+            </div>
+
+            <hr style="border-color:#444;">
+            <h3>Zálohovacie Sloty (Local Storage)</h3>
+            
+            <div id="slotsContainer"></div>
+
+            <hr style="border-color:#444;">
+            <h3>Import / Export JSON súboru</h3>
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <button onclick="downloadJson()">⬇️ Stiahnuť JSON</button>
+                <input type="file" id="importJsonFile" accept=".json" style="display:none;" onchange="uploadJson(event)">
+                <button onclick="document.getElementById('importJsonFile').click()">⬆️ Vložiť JSON</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Registrácia Service Workera pre PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker úspešne registrovaný.', reg.scope))
+                    .catch(err => console.log('Registrácia Service Workera zlyhala:', err));
+            });
+        }
+
+        // Databáza klubov pre inteligentné ligy
+        const leagueMapping = {
+            'FC Barcelona': 'Španielsko', 'Real Madrid': 'Španielsko', 'Atletico Madrid': 'Španielsko',
+            'Manchester United': 'Anglicko', 'Arsenal': 'Anglicko', 'Chelsea': 'Anglicko', 'Liverpool': 'Anglicko', 'Manchester City': 'Anglicko',
+            'Bayern Munich': 'Nemecko', 'Borussia Dortmund': 'Nemecko',
+            'Juventus': 'Taliansko', 'AC Milan': 'Taliansko', 'Inter Milan': 'Taliansko',
+            'PSG': 'Francúzsko'
+        };
+
+        function getLeagueForTeam(team) {
+            if(!team) return 'Ostatné';
+            return leagueMapping[team] || 'Ostatné';
+        }
+
+        // Globálny stav aplikácie
+        let cards = [];
+        let viewMode = 'both'; 
+        let currentCardImageBase64 = "";
+
+        // Inicializácia pri načítaní page
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedCards = localStorage.getItem('arcicards_cards');
+            if(savedCards) cards = JSON.parse(savedCards);
+            
+            const savedKey = localStorage.getItem('groq_api_key');
+            if(savedKey) document.getElementById('groqApiKey').value = savedKey;
+
+            buildSlotsUI();
+            renderApp();
+        });
+
+        function saveToLocalStorage() {
+            localStorage.setItem('arcicards_cards', JSON.stringify(cards));
+        }
+
+        // Modálne okná manažment
+        function openModal(id) { document.getElementById(id).style.display = 'block'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        function toggleFilter(id) {
+            const content = document.getElementById(id);
+            const ind = document.getElementById(id + '-indicator');
+            content.classList.toggle('active');
+            ind.innerText = content.classList.contains('active') ? '▲' : '▼';
+        }
+
+        function setViewMode(mode) {
+            viewMode = mode;
+            document.querySelectorAll('.view-modes button').forEach(b => b.classList.remove('active'));
+            document.getElementById('view-' + mode).classList.add('active');
+            renderApp();
+        }
+
+        const fileToBase64 = file => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+
+        async function analyzeImages() {
+            const apiKey = document.getElementById('groqApiKey').value;
+            if(!apiKey) { alert('Zadaj prosím najprv Groq API Kľúč v nastaveniach.'); return; }
+
+            const cardFile = document.getElementById('inputCardImg').files[0];
+            const detailsFile = document.getElementById('inputDetailsImg').files[0];
+
+            if(!cardFile || !detailsFile) {
+                alert('Musíš vybrať obidva obrázky (Fotku karty aj fotku detailov pre AI).');
+                return;
+            }
+
+            document.getElementById('aiLoading').style.display = 'inline';
+            
+            try {
+                currentCardImageBase64 = await fileToBase64(cardFile);
+                const detailsBase64 = await fileToBase64(detailsFile);
+                const cleanDetailsBase64 = detailsBase64.split(',')[1]; 
+
+                const promptText = `Analyze this image of a sports trading card data sheet. Extract the following fields and return strictly as a JSON object, do not wrap in markdown blocks, do not explain. Fields:
+                "firstName", "lastName", "team", "set", "manufacturer", "year", "cardImgSymbol" (this is the Card Number string, which can contain letters or symbols like '125', 'L22'), "insert" (like 'Captain', 'Base', etc., if none leave empty string).`;
+
+                const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: "meta-llama/llama-4-scout-17b-16e-instruct",
+                        messages: [
+                            {
+                                role: "user",
+                                content: [
+                                    { type: "text", text: promptText },
+                                    { type: "image_url", image_url: { url: `data:image/jpeg;base64,${cleanDetailsBase64}` } }
+                                ]
+                            }
+                        ],
+                        temperature: 0.1,
+                        response_format: { type: "json_object" }
+                    })
+                });
+
+                const data = await response.json();
+                const resText = data.choices[0].message.content;
+                const parsed = JSON.parse(resText);
+
+                document.getElementById('f_firstName').value = parsed.firstName || '';
+                document.getElementById('f_lastName').value = parsed.lastName || '';
+                document.getElementById('f_team').value = parsed.team || '';
+                document.getElementById('f_set').value = parsed.set || '';
+                document.getElementById('f_manufacturer').value = parsed.manufacturer || '';
+                document.getElementById('f_year').value = parsed.year || '';
+                document.getElementById('f_cardImgSymbol').value = parsed.cardImgSymbol || '';
+                document.getElementById('f_insert').value = parsed.insert || '';
+
+            } catch (err) {
+                console.error(err);
+                alert('Chyba pri analýze cez Groq API. Skontrolujte konzolu a API kľúč.');
+            } finally {
+                document.getElementById('aiLoading').style.display = 'none';
+            }
+        }
+
+        function stepTwoPrice() {
+            if(!currentCardImageBase64) { alert('Najprv vložte fotku karty a ideálne vykonajte AI analýzu.'); return; }
+            closeModal('addCardModal');
+            document.getElementById('priceCardPreview').src = currentCardImageBase64;
+            openModal('priceModal');
+        }
+
+        function saveNewCard() {
+            const firstName = document.getElementById('f_firstName').value;
+            const lastName = document.getElementById('f_lastName').value;
+            const team = document.getElementById('f_team').value;
+            const set = document.getElementById('f_set').value;
+            const manufacturer = document.getElementById('f_manufacturer').value;
+            const year = document.getElementById('f_year').value;
+            const cardImgSymbol = document.getElementById('f_cardImgSymbol').value;
+
+            const isDuplicate = cards.some(c => 
+                c.firstName.trim().toLowerCase() === firstName.trim().toLowerCase() &&
+                c.lastName.trim().toLowerCase() === lastName.trim().toLowerCase() &&
+                c.team.trim().toLowerCase() === team.trim().toLowerCase() &&
+                c.set.trim().toLowerCase() === set.trim().toLowerCase() &&
+                c.manufacturer.trim().toLowerCase() === manufacturer.trim().toLowerCase() &&
+                c.year.trim().toLowerCase() === year.trim().toLowerCase() &&
+                c.cardImgSymbol.trim().toLowerCase() === cardImgSymbol.trim().toLowerCase()
+            );
+
+            if (isDuplicate) {
+                alert('Upozornenie: Kartu s identickým popisom už v zbierke máš!');
+                return;
+            }
+
+            const newCard = {
+                id: Date.now().toString(),
+                firstName: firstName,
+                lastName: lastName,
+                team: team,
+                set: set,
+                manufacturer: manufacturer,
+                year: year,
+                cardImgSymbol: cardImgSymbol,
+                insert: document.getElementById('f_insert').value,
+                price: parseFloat(document.getElementById('f_price').value) || 0,
+                image: currentCardImageBase64,
+                favorite: false
+            };
+
+            cards.push(newCard);
+            saveToLocalStorage();
+            closeModal('priceModal');
+            
+            currentCardImageBase64 = "";
+            document.getElementById('inputCardImg').value = "";
+            document.getElementById('inputDetailsImg').value = "";
+            document.getElementById('f_price').value = "0.00";
+
+            renderApp();
+        }
+
+        function viewDetails(id) {
+            const card = cards.find(c => c.id === id);
+            if(!card) return;
+
+            document.getElementById('edit_id').value = card.id;
+            document.getElementById('detailCardPreview').src = card.image;
+            document.getElementById('e_firstName').value = card.firstName;
+            document.getElementById('e_lastName').value = card.lastName;
+            document.getElementById('e_team').value = card.team;
+            document.getElementById('e_set').value = card.set;
+            document.getElementById('e_manufacturer').value = card.manufacturer;
+            document.getElementById('e_year').value = card.year;
+            document.getElementById('e_cardImgSymbol').value = card.cardImgSymbol;
+            document.getElementById('e_insert').value = card.insert;
+            document.getElementById('e_price').value = card.price;
+
+            openModal('detailModal');
+        }
+
+        function updateCardData() {
+            const id = document.getElementById('edit_id').value;
+            const card = cards.find(c => c.id === id);
+            if(card) {
+                card.firstName = document.getElementById('e_firstName').value;
+                card.lastName = document.getElementById('e_lastName').value;
+                card.team = document.getElementById('e_team').value;
+                card.set = document.getElementById('e_set').value;
+                card.manufacturer = document.getElementById('e_manufacturer').value;
+                card.year = document.getElementById('e_year').value;
+                card.cardImgSymbol = document.getElementById('e_cardImgSymbol').value;
+                card.insert = document.getElementById('e_insert').value;
+                card.price = parseFloat(document.getElementById('e_price').value) || 0;
+
+                saveToLocalStorage();
+                closeModal('detailModal');
+                renderApp();
+            }
+        }
+
+        function deleteCardClick() {
+            if(confirm('Naozaj vymazať túto kartu zo zbierky?')) {
+                const id = document.getElementById('edit_id').value;
+                cards = cards.filter(c => c.id !== id);
+                saveToLocalStorage();
+                closeModal('detailModal');
+                renderApp();
+            }
+        }
+
+        function toggleFavorite(id, event) {
+            event.stopPropagation();
+            const card = cards.find(c => c.id === id);
+            if(card) {
+                card.favorite = !card.favorite;
+                saveToLocalStorage();
+                renderApp();
+            }
+        }
+
+        function sortCards(cardsArray, primaryKey) {
+            return cardsArray.sort((a, b) => {
+                let valA = (a[primaryKey] || '').toString().toLowerCase();
+                let valB = (b[primaryKey] || '').toString().toLowerCase();
+
+                if(primaryKey === 'price') {
+                    valA = a.price;
+                    valB = b.price;
+                }
+
+                if (valA < valB) return -1;
+                if (valA > valB) return 1;
+
+                const symbolA = (a.cardImgSymbol || '').toString();
+                const symbolB = (b.cardImgSymbol || '').toString();
+
+                const isNumA = /^\d+$/.test(symbolA);
+                const isNumB = /^\d+$/.test(symbolB);
+
+                if (!isNumA && isNumB) return -1;
+                if (isNumA && !isNumB) return 1;
+
+                if(isNumA && isNumB) {
+                    return parseInt(symbolA) - parseInt(symbolB);
+                }
+                return symbolA.localeCompare(symbolB);
+            });
+        }
+
+        function getSelectedCheckboxes(containerId) {
+            const checked = [];
+            const container = document.getElementById(containerId);
+            if(!container) return checked;
+            container.querySelectorAll('input[type="checkbox"]:checked').forEach(chk => {
+                checked.push(chk.value);
+            });
+            return checked;
+        }
+
+        function renderApp() {
+            const query = document.getElementById('globalSearch').value.toLowerCase();
+            const sortKey = document.getElementById('sortSelect').value;
+
+            const selectedLeagues = getSelectedCheckboxes('f-league');
+            const selectedClubs = getSelectedCheckboxes('f-club');
+            const selectedManufs = getSelectedCheckboxes('f-manuf');
+            const selectedSets = getSelectedCheckboxes('f-set');
+            const selectedSeasons = getSelectedCheckboxes('f-season');
+            const onlyFav = document.getElementById('chk-fav').checked;
+            const onlyInsert = document.getElementById('chk-has-insert').checked;
+            const onlyCharInNum = document.getElementById('chk-num-char').checked;
+
+            let filteredCards = cards.filter(card => {
+                if(query) {
+                    const matchText = `${card.firstName} ${card.lastName} ${card.team} ${card.set} ${card.manufacturer} ${card.cardImgSymbol}`.toLowerCase();
+                    if(!matchText.includes(query)) return false;
+                }
+
+                if(onlyFav && !card.favorite) return false;
+
+                if(selectedLeagues.length > 0 && !selectedLeagues.includes(getLeagueForTeam(card.team))) return false;
+                if(selectedClubs.length > 0 && !selectedClubs.includes(card.team)) return false;
+
+                if(selectedManufs.length > 0 && !selectedManufs.includes(card.manufacturer)) return false;
+                if(selectedSets.length > 0 && !selectedSets.includes(card.set)) return false;
+                if(selectedSeasons.length > 0 && !selectedSeasons.includes(card.year)) return false;
+
+                if(onlyInsert && (!card.insert || card.insert.trim() === "")) return false;
+                if(onlyCharInNum && /^\d+$/.test(card.cardImgSymbol || '')) return false;
+
+                return true;
+            });
+
+            filteredCards = sortCards(filteredCards, sortKey);
+            updateFilterOptions(filteredCards);
+
+            const grid = document.getElementById('cardsGrid');
+            grid.innerHTML = '';
+
+            filteredCards.forEach(card => {
+                const box = document.createElement('div');
+                box.className = 'card-box';
+                box.onclick = () => viewDetails(card.id);
+
+                const favClass = card.favorite ? 'fav-icon active' : 'fav-icon';
+                const favEl = `<span class="${favClass}" onclick="toggleFavorite('${card.id}', event)">♥</span>`;
+
+                let imgEl = `<img class="card-img-thumb" src="${card.image || ''}" alt="Card">`;
+                let infoEl = `
+                    <div class="card-info-text">
+                        <div><strong>${card.firstName} ${card.lastName}</strong> - ${card.team}</div>
+                        <div style="font-size:0.85rem; color:#aaa;">${card.manufacturer} ${card.set} ${card.year}</div>
+                        <div style="font-size:0.85rem; color:#bbb;">${card.cardImgSymbol} ${card.insert ? '- ' + card.insert : ''}</div>
+                        <div style="margin-top:5px; font-weight:bold; color:var(--accent-color);">${card.price.toFixed(2)} €</div>
+                    </div>
+                `;
+
+                if(viewMode === 'card') {
+                    box.innerHTML = `${favEl}<div style="display:flex; justify-content:center; width:100%;">${imgEl}</div>`;
+                } else if(viewMode === 'info') {
+                    box.innerHTML = `${favEl}${infoEl}`;
+                } else {
+                    box.innerHTML = `${favEl}${imgEl}${infoEl}`;
+                }
+
+                grid.appendChild(box);
+            });
+        }
+
+        function updateFilterOptions(currentFiltered) {
+            const renderFilterGroup = (elementId, cardKey, isLeague = false) => {
+                const container = document.getElementById(elementId);
+                const oldChecked = getSelectedCheckboxes(elementId);
+                container.innerHTML = '';
+
+                const mapValues = cards.map(c => isLeague ? getLeagueForTeam(c.team) : c[cardKey]).filter(Boolean);
+                const uniqueValues = [...new Set(mapValues)];
+
+                uniqueValues.forEach(val => {
+                    const count = currentFiltered.filter(c => (isLeague ? getLeagueForTeam(c.team) : c[cardKey]) === val).length;
+                    const item = document.createElement('div');
+                    item.className = 'filter-item';
+                    const isChecked = oldChecked.includes(val) ? 'checked' : '';
+                    
+                    item.innerHTML = `
+                        <input type="checkbox" value="${val}" ${isChecked} onchange="renderApp()">
+                        <span>${val} (${count})</span>
+                    `;
+                    container.appendChild(item);
+                });
+            };
+
+            renderFilterGroup('f-league', 'team', true);
+            renderFilterGroup('f-club', 'team');
+            renderFilterGroup('f-manuf', 'manufacturer');
+            renderFilterGroup('f-set', 'set');
+            renderFilterGroup('f-season', 'year');
+        }
+
+        function buildSlotsUI() {
+            const container = document.getElementById('slotsContainer');
+            container.innerHTML = '';
+            
+            for(let i = 1; i <= 4; i++) {
+                const slotDiv = document.createElement('div');
+                slotDiv.style.margin = "10px 0";
+                slotDiv.style.display = "flex";
+                slotDiv.style.gap = "5px";
+                slotDiv.style.alignItems = "center";
+                slotDiv.style.flexWrap = "wrap";
+                
+                slotDiv.innerHTML = `
+                    <strong style="min-width: 60px;">Slot ${i}:</strong>
+                    <button onclick="slotAction(${i}, 'save')">Uložiť</button>
+                    <button onclick="slotAction(${i}, 'load')">Načítať</button>
+                    <button class="btn-danger" onclick="slotAction(${i}, 'clear')">Vymazať</button>
+                    <button onclick="downloadSlotJson(${i})">⬇️ JSON</button>
+                    <input type="file" id="importSlotJsonFile_${i}" accept=".json" style="display:none;" onchange="uploadSlotJson(event, ${i})">
+                    <button onclick="document.getElementById('importSlotJsonFile_${i}').click()">⬆️ JSON</button>
+                `;
+                container.appendChild(slotDiv);
+            }
+        }
+
+        function slotAction(slotIndex, action) {
+            const slotKey = `arcicards_slot_${slotIndex}`;
+            if(action === 'save') {
+                if(cards.length === 0) { alert('Nemáš žiadne karty na uloženie.'); return; }
+                localStorage.setItem(slotKey, JSON.stringify(cards));
+                alert(`Zbierka bola uložená do Slotu ${slotIndex}.`);
+            } else if(action === 'load') {
+                const stored = localStorage.getItem(slotKey);
+                if(!stored) { alert(`Slot ${slotIndex} je prázdny.`); return; }
+                if(confirm(`Naozaj načítať Slot ${slotIndex}? Aktuálne zobrazené dáta sa prepíšu.`)) {
+                    cards = JSON.parse(stored);
+                    saveToLocalStorage();
+                    renderApp();
+                }
+            } else if(action === 'clear') {
+                if(confirm(`Naozaj vymazať obsah Slotu ${slotIndex}?`)) {
+                    localStorage.removeItem(slotKey);
+                    alert(`Slot ${slotIndex} bol vymazaný.`);
+                }
+            }
+        }
+
+        function downloadSlotJson(slotIndex) {
+            const slotKey = `arcicards_slot_${slotIndex}`;
+            const stored = localStorage.getItem(slotKey);
+            if(!stored) { alert(`Slot ${slotIndex} je prázdny, nie je čo stiahnuť.`); return; }
+            
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(stored);
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `arcicards_slot_${slotIndex}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function uploadSlotJson(event, slotIndex) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedCards = JSON.parse(e.target.result);
+                    if(Array.isArray(importedCards)) {
+                        const slotKey = `arcicards_slot_${slotIndex}`;
+                        localStorage.setItem(slotKey, JSON.stringify(importedCards));
+                        alert(`Dáta úspešne vložené do Slotu ${slotIndex}!`);
+                        if(confirm(`Chceš vložené dáta zo Slotu ${slotIndex} rovno načítať na obrazovku?`)) {
+                            cards = importedCards;
+                            saveToLocalStorage();
+                            renderApp();
+                        }
+                    } else {
+                        alert('Nesprávny formát JSON súboru.');
+                    }
+                } catch (err) {
+                    alert('Chyba pri čítaní JSON súboru.');
+                }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function downloadJson() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cards));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "arcicards_backup.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function uploadJson(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedCards = JSON.parse(e.target.result);
+                    if(Array.isArray(importedCards)) {
+                        cards = importedCards;
+                        saveToLocalStorage();
+                        renderApp();
+                        alert('Dáta z JSON úspešne vložené!');
+                    } else {
+                        alert('Nesprávny formát JSON súboru.');
+                    }
+                } catch (err) {
+                    alert('Chyba pri čítaní JSON súboru.');
+                }
+            };
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>
