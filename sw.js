@@ -1,4 +1,4 @@
-const CACHE_NAME = 'arcicards-v1';
+const CACHE_NAME = 'arcicards-v2'; // Zmena verzie z v1 na v2 prin√∫ti aplik√°ciu aktualizova≈• sa
 const ASSETS_TO_CACHE = [
   'index.html',
   'manifest.json',
@@ -6,26 +6,26 @@ const ASSETS_TO_CACHE = [
   'ArciCards_small.png'
 ];
 
-// Inötal·cia service workera a cachovanie s˙borov
+// In≈°tal√°cia service workera a cachovanie s√∫borov
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Cachujem dÙleûitÈ s˙bory aplik·cie');
+        console.log('Cachujem d√¥le≈æit√© s√∫bory aplik√°cie');
         return cache.addAll(ASSETS_TO_CACHE);
       })
       .then(() => self.skipWaiting())
   );
 });
 
-// Aktiv·cia service workera a mazanie star˝ch cache
+// Aktiv√°cia service workera a mazanie star√Ωch cache
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cache => {
           if (cache !== CACHE_NAME) {
-            console.log('Maûem star˙ cache:', cache);
+            console.log('Ma≈æem star√∫ cache:', cache);
             return caches.delete(cache);
           }
         })
@@ -34,9 +34,9 @@ self.addEventListener('activate', event => {
   );
 });
 
-// SieùovÈ poûiadavky: Cache First stratÈgia pre lok·lne s˙bory, Network-Only pre API
+// Sie≈•ov√© po≈æiadavky: Cache First strat√©gia pre lok√°lne s√∫bory, Network-Only pre API
 self.addEventListener('fetch', event => {
-  // Ignorovaù volania na externÈ Groq API, tie musia Ìsù vûdy live cez sieù
+  // Ignorova≈• volania na extern√© Groq API, tie musia √≠s≈• v≈ædy live cez sie≈•
   if (event.request.url.includes('api.groq.com')) {
     return;
   }
