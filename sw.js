@@ -1,4 +1,4 @@
-const CACHE_NAME = 'arcicards-v3'; // Zvýšená verzia cache prinúti PWA okamžite nahrať zmeny
+const CACHE_NAME = 'arcicards-v3';
 const ASSETS_TO_CACHE = [
   'index.html',
   'manifest.json',
@@ -6,7 +6,6 @@ const ASSETS_TO_CACHE = [
   'ArciCards_small.png'
 ];
 
-// Inštalácia service workera a cachovanie súborov
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -14,11 +13,10 @@ self.addEventListener('install', event => {
         console.log('Cachujem dôležité súbory aplikácie (v3)');
         return cache.addAll(ASSETS_TO_CACHE);
       })
-      .then(() => self.skipWaiting()) // Prinúti nového SW stať sa okamžite aktívnym
+      .then(() => self.skipWaiting())
   );
 });
 
-// Aktivácia service workera a mazanie starých cache
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
@@ -30,17 +28,31 @@ self.addEventListener('activate', event => {
           }
         })
       );
-    }).then(() => self.clients.claim()) // Okamžite preberie kontrolu nad všetkými otvorenými oknami aplikácie
+    }).then(() => self.clients.claim())
   );
 });
 
-// Sieťové požiadavky: Cache First stratégia pre lokálne súbory, Network-Only pre API
+// Sieťové požiadavky: Network-First stratégia pre index.html
 self.addEventListener('fetch', event => {
-  // Ignorovať volania na externé Groq API, tie musia ísť vždy live cez sieť
   if (event.request.url.includes('api.groq.com')) {
     return;
   }
 
+  // Ak ide o navigáciu na stránku (HTML), preferuj sieť, aby sa aktualizácia prejavila ihneď
+  if (event.request.mode === 'navigate' || event.request.url.includes('index.html')) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Pre ostatné statické súbory použi Cache-First
   event.respondWith(
     caches.match(event.request)
       .then(cachedResponse => {

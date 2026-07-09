@@ -100,7 +100,7 @@
             border-radius: 6px;
             padding: 10px;
             display: flex;
-            position: relative;
+ position: relative;
             cursor: pointer;
         }
 
@@ -225,31 +225,36 @@
     </div>
 
     <div class="section" style="padding: 5px;">
-        <h3 style="margin: 5px 10px;">Filtre</h3>
-        <div class="filter-header" onclick="toggleFilter('f-fav')"><span>❤️ Obľúbené</span><span id="f-fav-indicator">▼</span></div>
-        <div id="f-fav" class="filter-content">
-            <div class="filter-item"><input type="checkbox" id="chk-fav" onchange="handleFilterChange()"> Zobraziť iba obľúbené</div>
+        <div class="filter-header" onclick="toggleFilter('mainFiltersBox')" style="background: #222; padding: 12px; margin-top: 0;">
+            <span style="font-size: 1.05rem;">🔍 Zobraziť Filtre</span><span id="mainFiltersBox-indicator">▼</span>
         </div>
+        
+        <div id="mainFiltersBox" class="filter-content" style="background: transparent; max-height: none; padding: 0; overflow: visible;">
+            <div class="filter-header" onclick="toggleFilter('f-fav')" style="margin-top: 10px;"><span>❤️ Obľúbené</span><span id="f-fav-indicator">▼</span></div>
+            <div id="f-fav" class="filter-content">
+                <div class="filter-item"><input type="checkbox" id="chk-fav" onchange="handleFilterChange()"> Zobraziť iba obľúbené</div>
+            </div>
 
-        <div class="filter-header" onclick="toggleFilter('f-league')"><span>🌍 Liga</span><span id="f-league-indicator">▼</span></div>
-        <div id="f-league" class="filter-content"></div>
+            <div class="filter-header" onclick="toggleFilter('f-league')"><span>🌍 Liga</span><span id="f-league-indicator">▼</span></div>
+            <div id="f-league" class="filter-content"></div>
 
-        <div class="filter-header" onclick="toggleFilter('f-club')"><span>🛡️ Klub</span><span id="f-club-indicator">▼</span></div>
-        <div id="f-club" class="filter-content"></div>
+            <div class="filter-header" onclick="toggleFilter('f-club')"><span>🛡️ Klub</span><span id="f-club-indicator">▼</span></div>
+            <div id="f-club" class="filter-content"></div>
 
-        <div class="filter-header" onclick="toggleFilter('f-manuf')"><span>🏭 Manufaktúra</span><span id="f-manuf-indicator">▼</span></div>
-        <div id="f-manuf" class="filter-content"></div>
+            <div class="filter-header" onclick="toggleFilter('f-manuf')"><span>🏭 Manufaktúra</span><span id="f-manuf-indicator">▼</span></div>
+            <div id="f-manuf" class="filter-content"></div>
 
-        <div class="filter-header" onclick="toggleFilter('f-set')"><span>📦 Set</span><span id="f-set-indicator">▼</span></div>
-        <div id="f-set" class="filter-content"></div>
+            <div class="filter-header" onclick="toggleFilter('f-set')"><span>📦 Set</span><span id="f-set-indicator">▼</span></div>
+            <div id="f-set" class="filter-content"></div>
 
-        <div class="filter-header" onclick="toggleFilter('f-season')"><span>📅 Sezóna</span><span id="f-season-indicator">▼</span></div>
-        <div id="f-season" class="filter-content"></div>
+            <div class="filter-header" onclick="toggleFilter('f-season')"><span>📅 Sezóna</span><span id="f-season-indicator">▼</span></div>
+            <div id="f-season" class="filter-content"></div>
 
-        <div class="filter-header" onclick="toggleFilter('f-type')"><span>⚡ Ostatné typy</span><span id="f-type-indicator">▼</span></div>
-        <div id="f-type" class="filter-content">
-            <div class="filter-item"><input type="checkbox" id="chk-has-insert" onchange="handleFilterChange()"> Má Insert</div>
-            <div class="filter-item"><input type="checkbox" id="chk-num-char" onchange="handleFilterChange()"> Obsahuje písmeno v čísle karty</div>
+            <div class="filter-header" onclick="toggleFilter('f-type')"><span>⚡ Ostatné typy</span><span id="f-type-indicator">▼</span></div>
+            <div id="f-type" class="filter-content">
+                <div class="filter-item"><input type="checkbox" id="chk-has-insert" onchange="handleFilterChange()"> Má Insert</div>
+                <div class="filter-item"><input type="checkbox" id="chk-num-char" onchange="handleFilterChange()"> Obsahuje písmeno v čísle karty</div>
+            </div>
         </div>
     </div>
 
@@ -370,13 +375,11 @@
                 navigator.serviceWorker.register('sw.js')
                     .then(reg => {
                         console.log('Service Worker úspešne registrovaný.', reg.scope);
-                        // Kontrola aktualizácie na pozadí
                         reg.update();
                     })
                     .catch(err => console.log('Registrácia Service Workera zlyhala:', err));
             });
 
-            // Automatické obnovenie stránky pri nájdenej novej verzii servisu
             let refreshing = false;
             navigator.serviceWorker.addEventListener('controllerchange', () => {
                 if (!refreshing) {
@@ -386,7 +389,6 @@
             });
         }
 
-        // Komplexná databáza klubov pre inteligentné filtre Top líg
         const leagueMapping = {
             'Newcastle': 'Anglicko', 'Newcastle United': 'Anglicko', 'Manchester United': 'Anglicko', 'Arsenal': 'Anglicko', 'Chelsea': 'Anglicko', 'Liverpool': 'Anglicko', 'Manchester City': 'Anglicko', 'Tottenham': 'Anglicko', 'Aston Villa': 'Anglicko', 'West Ham': 'Anglicko', 'Brighton': 'Anglicko', 'Everton': 'Anglicko',
             'FC Barcelona': 'Španielsko', 'Real Madrid': 'Španielsko', 'Atletico Madrid': 'Španielsko', 'Real Sociedad': 'Španielsko', 'Villarreal': 'Španielsko', 'Sevilla': 'Španielsko', 'Real Betis': 'Španielsko', 'Girona': 'Španielsko',
@@ -420,14 +422,12 @@
             return 'Ostatné';
         }
 
-        // Globálny stav aplikácie
         let cards = [];
         let viewMode = 'both'; 
         let currentCardImageBase64 = "";
         let openModalsStack = [];
         let blockPopstateEvent = false;
 
-        // Inicializácia pri načítaní page
         window.addEventListener('DOMContentLoaded', () => {
             const savedCards = localStorage.getItem('arcicards_cards');
             if(savedCards) cards = JSON.parse(savedCards);
@@ -441,25 +441,21 @@
             }
             updateViewModeButtonsUI();
 
-            // Vytvorenie základného stavu v histórii prehliadača
             window.history.replaceState({ type: 'root' }, '');
 
             buildSlotsUI();
             renderApp();
         });
 
-        // Správa histórie (tlačidlo späť) na mobile
         window.addEventListener('popstate', (event) => {
             if (blockPopstateEvent) return;
 
             if (openModalsStack.length > 0) {
-                // Zavrieme posledné otvorené okno
                 const modalId = openModalsStack.pop();
                 document.getElementById(modalId).style.display = 'none';
                 return;
             }
 
-            // Ak nie sú modaly, skontrolujeme či sú nejaké aktívne filtre a zrušíme ich
             if (hasActiveFilters()) {
                 clearAllFilters();
                 renderApp();
@@ -506,7 +502,6 @@
             localStorage.setItem('arcicards_cards', JSON.stringify(cards));
         }
 
-        // Modálne okná manažment
         function openModal(id) { 
             document.getElementById(id).style.display = 'block'; 
             openModalsStack.push(id);
@@ -517,7 +512,6 @@
             document.getElementById(id).style.display = 'none'; 
             openModalsStack = openModalsStack.filter(m => m !== id);
             
-            // Odstránime príslušný záznam z histórie simulovaním kroku späť bez aktivácie eventu
             blockPopstateEvent = true;
             window.history.back();
             setTimeout(() => { blockPopstateEvent = false; }, 50);
@@ -896,7 +890,6 @@
             renderFilterGroup('f-season', 'year');
         }
 
-        // --- MANAŽMENT SLOTŮ A ZÁLOH (OPRAVENÝ A SPOLOHLIVÝ) ---
         function getSlotMetadata(slotIndex) {
             const meta = localStorage.getItem(`arcicards_slot_meta_${slotIndex}`);
             return meta ? JSON.parse(meta) : { name: `Slot ${slotIndex}` };
@@ -935,20 +928,19 @@
         function slotAction(slotIndex, action) {
             const slotKey = `arcicards_slot_${slotIndex}`;
             if(action === 'save') {
-                if(cards.length === 0) { alert('Nemáš žiadne karty na uloženie.'); return; }
-                
-                // Uloženie dát
-                localStorage.setItem(slotKey, JSON.stringify(cards));
-                
-                // Vygenerovanie dnešného dátumu v slovenskom formáte (napr. 9. 7. 2026)
-                const now = new Date();
-                const formattedDate = `${now.getDate()}. ${now.getMonth() + 1}. ${now.getFullYear()}`;
-                
-                // Uloženie názvu
-                setSlotMetadata(slotIndex, formattedDate);
-                
-                alert(`Zbierka bola bezpečne uložená do Slotu ${slotIndex}.`);
-                buildSlotsUI();
+                try {
+                    // Odstránená blokujúca podmienka prázdneho poľa kariet
+                    localStorage.setItem(slotKey, JSON.stringify(cards));
+                    
+                    const now = new Date();
+                    const formattedDate = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
+                    
+                    setSlotMetadata(slotIndex, formattedDate);
+                    alert(`Zbierka bola bezpečne uložená do Slotu ${slotIndex}.`);
+                    buildSlotsUI();
+                } catch (e) {
+                    alert("Chyba: Dáta sú príliš veľké pre pamäť LocalStorage (obmedzenie prehliadača). Použite radšej tlačidlo 'Stiahnuť JSON'.");
+                }
             } else if(action === 'load') {
                 const stored = localStorage.getItem(slotKey);
                 if(!stored) { alert(`Slot ${slotIndex} je prázdny.`); return; }
@@ -996,7 +988,7 @@
                         localStorage.setItem(slotKey, JSON.stringify(importedCards));
                         
                         const now = new Date();
-                        const formattedDate = `${now.getDate()}. ${now.getMonth() + 1}. ${now.getFullYear()}`;
+                        const formattedDate = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
                         setSlotMetadata(slotIndex, formattedDate);
                         
                         alert(`Dáta úspešne vložené do Slotu ${slotIndex}!`);
@@ -1060,11 +1052,10 @@
                     const slotSelection = prompt('Do ktorého slotu si praješ dáta odložiť? Napíš iba číslo od 1 do 4:');
                     const slotNum = parseInt(slotSelection);
                     if(slotNum >= 1 && slotNum <= 4) {
-                        // Vykonáme uloženie do vybraného slotu pred zmazaním
                         const slotKey = `arcicards_slot_${slotNum}`;
                         localStorage.setItem(slotKey, JSON.stringify(cards));
                         const now = new Date();
-                        const formattedDate = `${now.getDate()}. ${now.getMonth() + 1}. ${now.getFullYear()}`;
+                        const formattedDate = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
                         setSlotMetadata(slotNum, formattedDate);
                         alert(`Aktuálna databáza bola odložená do Slotu ${slotNum}.`);
                     } else {
@@ -1072,7 +1063,6 @@
                     }
                 }
                 
-                // Kompletné premazanie hlavnej databázy
                 cards = [];
                 localStorage.removeItem('arcicards_cards');
                 renderApp();
