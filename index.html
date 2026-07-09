@@ -525,13 +525,17 @@
             <input type="text" id="globalSearch" class="search-bar" placeholder="Hľadať meno, klub, set, manufaktúru..." oninput="resetPaginationAndRender()">
             <div class="sort-container">
                 <label for="sortSelect">Zoradiť podľa: </label>
-                <select id="sortSelect" onchange="resetPaginationAndRender()" style="padding:10px; background:rgba(0,0,0,0.4); color:white; border-radius:6px; border:1px solid var(--border-color); font-size:0.95rem;">
+                <select id="sortSelect" onchange="resetPaginationAndRender()" style="padding:10px; background:rgba(0,0,0,0.4); color:white; border-radius:6px 0 0 6px; border:1px solid var(--border-color); font-size:0.95rem; border-right:none;">
                     <option value="firstName">Mena</option>
                     <option value="team">Klubu</option>
                     <option value="manufacturer">Manufaktúry</option>
                     <option value="set">Setu</option>
                     <option value="year">Sezóny</option>
                     <option value="price">Ceny</option>
+                </select>
+                <select id="sortDirectionSelect" onchange="resetPaginationAndRender()" style="padding:10px; background:rgba(0,0,0,0.4); color:white; border-radius:0 6px 6px 0; border:1px solid var(--border-color); font-size:0.95rem;">
+                    <option value="asc">Vzostupne</option>
+                    <option value="desc">Zostupne</option>
                 </select>
             </div>
         </div>
@@ -888,18 +892,37 @@
             'FC Barcelona': 'Španielsko', 'Real Madrid': 'Španielsko', 'Atletico Madrid': 'Španielsko', 'Real Sociedad': 'Španielsko', 'Villarreal': 'Španielsko', 'Sevilla': 'Španielsko', 'Real Betis': 'Španielsko', 'Girona': 'Španielsko',
             'Bayern Munich': 'Nemecko', 'Bayern Munchen': 'Nemecko', 'Borussia Dortmund': 'Nemecko', 'Bayer Leverkusen': 'Nemecko', 'RB Leipzig': 'Nemecko', 'Eintracht Frankfurt': 'Nemecko', 'VfB Stuttgart': 'Nemecko',
             'Juventus': 'Taliansko', 'AC Milan': 'Taliansko', 'Inter Milan': 'Taliansko', 'AS Roma': 'Taliansko', 'Napoli': 'Taliansko', 'Lazio': 'Taliansko', 'Atalanta': 'Taliansko', 'Fiorentina': 'Taliansko',
-            'PSG': 'Francúzsko', 'Paris Saint-Germain': 'Francúzsko', 'Marseille': 'Francúzsko', 'Monaco': 'Francúzsko', 'Lyon': 'Francúzsko', 'Lille': 'Francúzsko', 'Lens': 'Francúzsko', 'Rennes': 'Francúzsko'
+            'PSG': 'Francúzsko', 'Paris Saint-Germain': 'Francúzsko', 'Marseille': 'Francúzsko', 'Monaco': 'Francúzsko', 'Lyon': 'Francúzsko', 'Lille': 'Francúzsko', 'Lens': 'Francúzsko', 'Rennes': 'Francúzsko',
+            'Celtic': 'Škótsko', 'Celtic Glasgow': 'Škótsko', 'Rangers': 'Škótsko', 'Glasgow Rangers': 'Škótsko',
+            'Club Brugge': 'Belgicko', 'FC Brugge': 'Belgicko', 'Anderlecht': 'Belgicko', 'Genk': 'Belgicko', 'Gent': 'Belgicko',
+            'Sporting': 'Portugalsko', 'Sporting Lisabon': 'Portugalsko', 'Sporting CP': 'Portugalsko', 'Benfica': 'Portugalsko', 'Benfica Lisabon': 'Portugalsko', 'FC Porto': 'Portugalsko',
+            'Slovan': 'Slovensko', 'Slovan Bratislava': 'Slovensko', 'Žilina': 'Slovensko', 'MŠK Žilina': 'Slovensko', 'Trnava': 'Slovensko', 'Spartak Trnava': 'Slovensko',
+            'Sparta': 'Česko', 'Sparta Praha': 'Česko', 'Slavia': 'Česko', 'Slavia Praha': 'Česko', 'Plzeň': 'Česko', 'Viktoria Plzeň': 'Česko',
+            'Ajax': 'Holandsko', 'Ajax Amsterdam': 'Holandsko', 'PSV': 'Holandsko', 'PSV Eindhoven': 'Holandsko', 'Feyenoord': 'Holandsko'
         };
 
-        const allowedTopLeagues = ['Anglicko', 'Nemecko', 'Španielsko', 'Francúzsko', 'Taliansko'];
+        const countriesList = [
+            'Slovensko', 'Česko', 'Francúzsko', 'Nemecko', 'Anglicko', 'Španielsko', 'Taliansko', 
+            'Belgicko', 'Holandsko', 'Portugalsko', 'Škótsko', 'Rakúsko', 'Švajčiarsko', 'Poľsko', 
+            'Maďarsko', 'Chorvátsko', 'Srbsko', 'Ukrajina', 'Rumunsko', 'Bulharsko', 'Grécko', 'Turecko',
+            'Brazília', 'Argentína', 'Uman', 'USA', 'Mexiko', 'Japonsko', 'Maroko', 'Senegal'
+        ];
 
         function getLeagueForTeam(team, fallbackLeague) {
             if (!team) return 'Ostatné';
-            if (leagueMapping[team]) return leagueMapping[team];
             
-            const cleanTeam = team.trim().toLowerCase();
+            const cleanTeam = team.trim();
+            const lowerTeam = cleanTeam.toLowerCase();
+
+            const isInternational = countriesList.some(country => country.toLowerCase() === lowerTeam);
+            if (isInternational) {
+                return 'Medzinárodné';
+            }
+
+            if (leagueMapping[cleanTeam]) return leagueMapping[cleanTeam];
+            
             for (const key in leagueMapping) {
-                if (cleanTeam.includes(key.toLowerCase()) || key.toLowerCase().includes(cleanTeam)) {
+                if (lowerTeam.includes(key.toLowerCase()) || key.toLowerCase().includes(lowerTeam)) {
                     return leagueMapping[key];
                 }
             }
@@ -911,6 +934,13 @@
                 if (cleanFallback.includes('špani') || cleanFallback.includes('spani') || cleanFallback.includes('spain') || cleanFallback.includes('liga')) return 'Španielsko';
                 if (cleanFallback.includes('franc') || cleanFallback.includes('france') || cleanFallback.includes('ligue')) return 'Francúzsko';
                 if (cleanFallback.includes('talia') || cleanFallback.includes('italy') || cleanFallback.includes('serie')) return 'Taliansko';
+                if (cleanFallback.includes('belg')) return 'Belgicko';
+                if (cleanFallback.includes('portu')) return 'Portugalsko';
+                if (cleanFallback.includes('škót') || cleanFallback.includes('scot')) return 'Škótsko';
+                if (cleanFallback.includes('holand') || cleanFallback.includes('nether')) return 'Holandsko';
+                if (cleanFallback.includes('sloven')) return 'Slovensko';
+                if (cleanFallback.includes('česk') || cleanFallback.includes('czech')) return 'Česko';
+                if (cleanFallback.includes('medzinárod') || cleanFallback.includes('internat') || cleanFallback.includes('repre')) return 'Medzinárodné';
             }
 
             return 'Ostatné';
@@ -1594,7 +1624,8 @@
             }
         }
 
-        function sortCards(cardsArray, primaryKey) {
+        function sortCards(cardsArray, primaryKey, direction = 'asc') {
+            const isDesc = direction === 'desc';
             return cardsArray.sort((a, b) => {
                 let valA = (a[primaryKey] || '').toString().toLowerCase();
                 let valB = (b[primaryKey] || '').toString().toLowerCase();
@@ -1604,8 +1635,8 @@
                     valB = b.price;
                 }
 
-                if (valA < valB) return -1;
-                if (valA > valB) return 1;
+                if (valA < valB) return isDesc ? 1 : -1;
+                if (valA > valB) return isDesc ? -1 : 1;
 
                 const symbolA = (a.cardImgSymbol || '').toString();
                 const symbolB = (b.cardImgSymbol || '').toString();
@@ -1613,13 +1644,13 @@
                 const isNumA = /^\d+$/.test(symbolA);
                 const isNumB = /^\d+$/.test(symbolB);
 
-                if (!isNumA && isNumB) return -1;
-                if (isNumA && !isNumB) return 1;
+                if (!isNumA && isNumB) return isDesc ? 1 : -1;
+                if (isNumA && !isNumB) return isDesc ? -1 : 1;
 
                 if(isNumA && isNumB) {
-                    return parseInt(symbolA) - parseInt(symbolB);
+                    return isDesc ? (parseInt(symbolB) - parseInt(symbolA)) : (parseInt(symbolA) - parseInt(symbolB));
                 }
-                return symbolA.localeCompare(symbolB);
+                return isDesc ? symbolB.localeCompare(symbolA) : symbolA.localeCompare(symbolB);
             });
         }
 
@@ -1636,6 +1667,7 @@
         function renderApp() {
             const query = document.getElementById('globalSearch').value.toLowerCase();
             const sortKey = document.getElementById('sortSelect').value;
+            const sortDirection = document.getElementById('sortDirectionSelect').value;
 
             const selectedLeagues = getSelectedCheckboxes('f-league');
             const selectedClubs = getSelectedCheckboxes('f-club');
@@ -1669,7 +1701,7 @@
                 return true;
             });
 
-            filteredCards = sortCards(filteredCards, sortKey);
+            filteredCards = sortCards(filteredCards, sortKey, sortDirection);
             updateFilterOptions(filteredCards);
 
             let totalFilteredPrice = 0;
@@ -1817,11 +1849,14 @@
 
                 let uniqueValues = [];
                 if (isLeague) {
-                    uniqueValues = [...allowedTopLeagues, 'Ostatné'];
+                    const allLeagues = cards.map(c => c.league || getLeagueForTeam(c.team, "")).filter(Boolean);
+                    uniqueValues = [...new Set(allLeagues)];
                 } else {
                     const mapValues = cards.map(c => c[cardKey]).filter(Boolean);
                     uniqueValues = [...new Set(mapValues)];
                 }
+
+                uniqueValues.sort((a, b) => a.localeCompare(b));
 
                 uniqueValues.forEach(val => {
                     const count = currentFiltered.filter(c => {
@@ -1831,7 +1866,7 @@
                         return c[cardKey] === val;
                     }).length;
                     
-                    if (count === 0 && !oldChecked.includes(val) && !isLeague) return;
+                    if (count === 0 && !oldChecked.includes(val)) return;
 
                     const item = document.createElement('div');
                     item.className = 'filter-item';
