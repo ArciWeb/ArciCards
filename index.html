@@ -86,12 +86,18 @@
 
         .filter-item input { margin-right: 10px; }
 
-        /* Mriežka kariet */
+        /* Mriežka kariet - Upravená pre flexibilné zobrazenie viacerých stĺpcov */
         .cards-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 15px;
             margin-top: 15px;
+        }
+
+        /* Špeciálna trieda, keď chceme zobraziť IBA karty, aby sa zmestili aj 3 vedľa seba */
+        .cards-grid.only-cards-mode {
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
         }
 
         .card-box {
@@ -100,8 +106,15 @@
             border-radius: 6px;
             padding: 10px;
             display: flex;
- position: relative;
+            position: relative;
             cursor: pointer;
+            flex-direction: row;
+        }
+
+        .only-cards-mode .card-box {
+            flex-direction: column;
+            align-items: center;
+            padding: 6px;
         }
 
         .card-img-thumb {
@@ -111,6 +124,14 @@
             border-radius: 4px;
             margin-right: 12px;
             background: #333;
+        }
+
+        .only-cards-mode .card-img-thumb {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 2.5 / 3.5;
+            margin-right: 0;
+            margin-bottom: 6px;
         }
 
         .card-info-text {
@@ -131,6 +152,12 @@
         }
 
         .fav-icon.active { color: #ff4081; }
+
+        .only-cards-mode .fav-icon {
+            top: 5px;
+            right: 5px;
+            font-size: 1.2rem;
+        }
 
         /* Modálne okná */
         .modal {
@@ -195,6 +222,14 @@
             border: 1px solid #444;
             color: white;
             border-radius: 4px;
+        }
+
+        .card-price-badge {
+            margin-top: 5px;
+            font-weight: bold;
+            color: var(--accent-color);
+            text-align: center;
+            font-size: 0.9rem;
         }
     </style>
 </head>
@@ -350,7 +385,7 @@
             </div>
 
             <hr style="border-color:#444;">
-            <h3>Zálohovacie Sloty (Local Storage)</h3>
+            <h3>Zálohovacie Sloty (IndexedDB - Neobmedzená pamäť)</h3>
             <div id="slotsContainer"></div>
 
             <hr style="border-color:#444;">
@@ -369,6 +404,69 @@
     </div>
 
     <script>
+        // --- INICIALIZÁCIA INDEXEDDB (NÁHRADA ZA LOCALSTORAGE) ---
+        const DB_NAME = 'ArciCardsDB';
+        const DB_VERSION = 1;
+        let db;
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onerror = event => {
+                    console.error('IndexedDB error:', event.target.error);
+                    reject(event.target.error);
+                };
+                request.onsuccess = event => {
+                    db = event.target.result;
+                    resolve(db);
+                };
+                request.onupgradeneeded = event => {
+                    const database = event.target.result;
+                    // Store pre hlavné karty a metaúdaje slotov
+                    if (!database.objectStoreNames.contains('app_data')) {
+                        database.createObjectStore('app_data');
+                    }
+                    // Store pre zálohovacie veľké sloty
+                    if (!database.objectStoreNames.contains('slots_data')) {
+                        database.createObjectStore('slots_data');
+                    }
+                };
+            });
+        }
+
+        function getDBData(storeName, key) {
+            return new Promise((resolve) => {
+                if (!db) { resolve(null); return; }
+                const transaction = db.transaction([storeName], 'readonly');
+                const store = transaction.objectStore(storeName);
+                const request = store.get(key);
+                request.onsuccess = () => resolve(request.result || null);
+                request.onerror = () => resolve(null);
+            });
+        }
+
+        function setDBData(storeName, key, value) {
+            return new Promise((resolve, reject) => {
+                if (!db) { reject('DB not initialized'); return; }
+                const transaction = db.transaction([storeName], 'readwrite');
+                const store = transaction.objectStore(storeName);
+                const request = store.put(value, key);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.onerror);
+            });
+        }
+
+        function deleteDBData(storeName, key) {
+            return new Promise((resolve) => {
+                if (!db) { resolve(); return; }
+                const transaction = db.transaction([storeName], 'readwrite');
+                const store = transaction.objectStore(storeName);
+                const request = store.delete(key);
+                request.onsuccess = () => resolve();
+                request.onerror = () => resolve();
+            });
+        }
+
         // Registrácia Service Workera pre PWA
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -428,9 +526,48 @@
         let openModalsStack = [];
         let blockPopstateEvent = false;
 
-        window.addEventListener('DOMContentLoaded', () => {
-            const savedCards = localStorage.getItem('arcicards_cards');
-            if(savedCards) cards = JSON.parse(savedCards);
+        // --- AUTOMATICKÁ KOMPRESIA OBRÁZKOV NA POZADÍ ---
+        function compressImage(base64Str, maxWidth = 800, maxHeight = 1100, quality = 0.7) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.src = base64Str;
+                img.onload = () => {
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > maxWidth) {
+                            height = Math.round((height * maxWidth) / width);
+                            width = maxWidth;
+                        }
+                    } else {
+                        if (height > maxHeight) {
+                            width = Math.round((width * maxHeight) / height);
+                            height = maxHeight;
+                        }
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Kompresia na formát JPEG s nižšou kvalitou výrazne zredukuje veľkosť v bajtoch
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+                    resolve(compressedBase64);
+                };
+                img.onerror = () => {
+                    resolve(base64Str); // V prípade chyby vráti pôvodný súbor
+                };
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            await initDB();
+
+            const savedCards = await getDBData('app_data', 'arcicards_cards');
+            if(savedCards) cards = savedCards;
             
             const savedKey = localStorage.getItem('groq_api_key');
             if(savedKey) document.getElementById('groqApiKey').value = savedKey;
@@ -443,7 +580,7 @@
 
             window.history.replaceState({ type: 'root' }, '');
 
-            buildSlotsUI();
+            await buildSlotsUI();
             renderApp();
         });
 
@@ -498,8 +635,8 @@
             renderApp();
         }
 
-        function saveToLocalStorage() {
-            localStorage.setItem('arcicards_cards', JSON.stringify(cards));
+        async function saveToLocalStorage() {
+            await setDBData('app_data', 'arcicards_cards', cards);
         }
 
         function openModal(id) { 
@@ -559,9 +696,14 @@
             document.getElementById('aiLoading').style.display = 'inline';
             
             try {
-                currentCardImageBase64 = await fileToBase64(cardFile);
-                const detailsBase64 = await fileToBase64(detailsFile);
-                const cleanDetailsBase64 = detailsBase64.split(',')[1]; 
+                const rawCardBase64 = await fileToBase64(cardFile);
+                const rawDetailsBase64 = await fileToBase64(detailsFile);
+                
+                // Automatická optimalizácia pred odoslaním/uložením
+                currentCardImageBase64 = await compressImage(rawCardBase64);
+                const optimizedDetailsBase64 = await compressImage(rawDetailsBase64, 1000, 1300, 0.6);
+                
+                const cleanDetailsBase64 = optimizedDetailsBase64.split(',')[1]; 
 
                 const promptText = `Analyze this image of a sports trading card data sheet. Extract the following fields and return strictly as a JSON object, do not wrap in markdown blocks, do not explain. Fields:
                 "firstName", "lastName", "team", "league" (find the league name of the club like Premier League, Bundesliga, La Liga etc.), "set", "manufacturer", "year", "cardImgSymbol" (this is the Card Number string, which can contain letters or symbols like '125', 'L22'), "insert" (like 'Captain', 'Base', etc., if none leave empty string).`;
@@ -613,14 +755,23 @@
             }
         }
 
-        function stepTwoPrice() {
-            if(!currentCardImageBase64) { alert('Najprv vložte fotku karty and ideálne vykonajte AI analýzu.'); return; }
+        async function stepTwoPrice() {
+            if(!currentCardImageBase64) {
+                const cardFile = document.getElementById('inputCardImg').files[0];
+                if(cardFile) {
+                    const rawBase64 = await fileToBase64(cardFile);
+                    currentCardImageBase64 = await compressImage(rawBase64);
+                } else {
+                    alert('Najprv vložte fotku karty and ideálne vykonajte AI analýzu.');
+                    return;
+                }
+            }
             closeModal('addCardModal');
             document.getElementById('priceCardPreview').src = currentCardImageBase64;
             openModal('priceModal');
         }
 
-        function saveNewCard() {
+        async function saveNewCard() {
             const firstName = document.getElementById('f_firstName').value;
             const lastName = document.getElementById('f_lastName').value;
             const team = document.getElementById('f_team').value;
@@ -662,7 +813,7 @@
             };
 
             cards.push(newCard);
-            saveToLocalStorage();
+            await saveToLocalStorage();
             closeModal('priceModal');
             
             currentCardImageBase64 = "";
@@ -693,7 +844,7 @@
             openModal('detailModal');
         }
 
-        function updateCardData() {
+        async function updateCardData() {
             const id = document.getElementById('edit_id').value;
             const card = cards.find(c => c.id === id);
             if(card) {
@@ -708,28 +859,28 @@
                 card.insert = document.getElementById('e_insert').value;
                 card.price = parseFloat(document.getElementById('e_price').value) || 0;
 
-                saveToLocalStorage();
+                await saveToLocalStorage();
                 closeModal('detailModal');
                 renderApp();
             }
         }
 
-        function deleteCardClick() {
+        async function deleteCardClick() {
             if(confirm('Naozaj vymazať túto kartu zo zbierky?')) {
                 const id = document.getElementById('edit_id').value;
                 cards = cards.filter(c => c.id !== id);
-                saveToLocalStorage();
+                await saveToLocalStorage();
                 closeModal('detailModal');
                 renderApp();
             }
         }
 
-        function toggleFavorite(id, event) {
+        async function toggleFavorite(id, event) {
             event.stopPropagation();
             const card = cards.find(c => c.id === id);
             if(card) {
                 card.favorite = !card.favorite;
-                saveToLocalStorage();
+                await saveToLocalStorage();
                 renderApp();
             }
         }
@@ -815,6 +966,13 @@
             const grid = document.getElementById('cardsGrid');
             grid.innerHTML = '';
 
+            // Ak máme nastavený režim iba karta, pridáme triedu pre viacstĺpcovú mriežku
+            if (viewMode === 'card') {
+                grid.classList.add('only-cards-mode');
+            } else {
+                grid.classList.remove('only-cards-mode');
+            }
+
             filteredCards.forEach(card => {
                 const box = document.createElement('div');
                 box.className = 'card-box';
@@ -836,7 +994,8 @@
                 `;
 
                 if(viewMode === 'card') {
-                    box.innerHTML = `${favEl}<div style="display:flex; justify-content:center; width:100%;">${imgEl}</div>`;
+                    // Režim "Iba karta": Zobrazí fotku karty a priamo pod ňou pridá cenu
+                    box.innerHTML = `${favEl}<div style="display:flex; flex-direction:column; align-items:center; width:100%;">${imgEl}<div class="card-price-badge">${card.price.toFixed(2)} €</div></div>`;
                 } else if(viewMode === 'info') {
                     box.innerHTML = `${favEl}${infoEl}`;
                 } else {
@@ -890,21 +1049,21 @@
             renderFilterGroup('f-season', 'year');
         }
 
-        function getSlotMetadata(slotIndex) {
-            const meta = localStorage.getItem(`arcicards_slot_meta_${slotIndex}`);
-            return meta ? JSON.parse(meta) : { name: `Slot ${slotIndex}` };
+        async function getSlotMetadata(slotIndex) {
+            const meta = await getDBData('app_data', `arcicards_slot_meta_${slotIndex}`);
+            return meta ? meta : { name: `Slot ${slotIndex}` };
         }
 
-        function setSlotMetadata(slotIndex, name) {
-            localStorage.setItem(`arcicards_slot_meta_${slotIndex}`, JSON.stringify({ name: name }));
+        async function setSlotMetadata(slotIndex, name) {
+            await setDBData('app_data', `arcicards_slot_meta_${slotIndex}`, { name: name });
         }
 
-        function buildSlotsUI() {
+        async function buildSlotsUI() {
             const container = document.getElementById('slotsContainer');
             container.innerHTML = '';
             
             for(let i = 1; i <= 4; i++) {
-                const slotMeta = getSlotMetadata(i);
+                const slotMeta = await getSlotMetadata(i);
                 const slotDiv = document.createElement('div');
                 slotDiv.style.margin = "10px 0";
                 slotDiv.style.display = "flex";
@@ -925,47 +1084,48 @@
             }
         }
 
-        function slotAction(slotIndex, action) {
+        async function slotAction(slotIndex, action) {
             const slotKey = `arcicards_slot_${slotIndex}`;
             if(action === 'save') {
                 try {
-                    // Odstránená blokujúca podmienka prázdneho poľa kariet
-                    localStorage.setItem(slotKey, JSON.stringify(cards));
+                    // Používame obchodný priestor 'slots_data' v IndexedDB – neobmedzená veľkosť pre veľké fotky
+                    await setDBData('slots_data', slotKey, cards);
                     
                     const now = new Date();
                     const formattedDate = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
                     
-                    setSlotMetadata(slotIndex, formattedDate);
-                    alert(`Zbierka bola bezpečne uložená do Slotu ${slotIndex}.`);
-                    buildSlotsUI();
+                    await setSlotMetadata(slotIndex, formattedDate);
+                    alert(`Zbierka bola bezpečne uložená do IndexedDB Slotu ${slotIndex}.`);
+                    await buildSlotsUI();
                 } catch (e) {
-                    alert("Chyba: Dáta sú príliš veľké pre pamäť LocalStorage (obmedzenie prehliadača). Použite radšej tlačidlo 'Stiahnuť JSON'.");
+                    console.error(e);
+                    alert("Chyba: Nepodarilo sa uložiť slot do databázy.");
                 }
             } else if(action === 'load') {
-                const stored = localStorage.getItem(slotKey);
+                const stored = await getDBData('slots_data', slotKey);
                 if(!stored) { alert(`Slot ${slotIndex} je prázdny.`); return; }
                 if(confirm(`Naozaj načítať Slot ${slotIndex}? Aktuálne zobrazené dáta sa prepíšu.`)) {
-                    cards = JSON.parse(stored);
-                    saveToLocalStorage();
+                    cards = stored;
+                    await saveToLocalStorage();
                     renderApp();
                     alert('Dáta zo slotu úspešne načítané na obrazovku.');
                 }
             } else if(action === 'clear') {
                 if(confirm(`Naozaj vymazať obsah Slotu ${slotIndex}?`)) {
-                    localStorage.removeItem(slotKey);
-                    localStorage.removeItem(`arcicards_slot_meta_${slotIndex}`);
+                    await deleteDBData('slots_data', slotKey);
+                    await deleteDBData('app_data', `arcicards_slot_meta_${slotIndex}`);
                     alert(`Slot ${slotIndex} bol vymazaný a zresetovaný.`);
-                    buildSlotsUI();
+                    await buildSlotsUI();
                 }
             }
         }
 
-        function downloadSlotJson(slotIndex) {
+        async function downloadSlotJson(slotIndex) {
             const slotKey = `arcicards_slot_${slotIndex}`;
-            const stored = localStorage.getItem(slotKey);
+            const stored = await getDBData('slots_data', slotKey);
             if(!stored) { alert(`Slot ${slotIndex} je prázdny, nie je čo stiahnuť.`); return; }
             
-            const blob = new Blob([stored], { type: "application/json;charset=utf-8" });
+            const blob = new Blob([JSON.stringify(stored)], { type: "application/json;charset=utf-8" });
             const url = URL.createObjectURL(blob);
             const downloadAnchor = document.createElement('a');
             downloadAnchor.setAttribute("href", url);
@@ -980,23 +1140,23 @@
             const file = event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 try {
                     const importedCards = JSON.parse(e.target.result);
                     if(Array.isArray(importedCards)) {
                         const slotKey = `arcicards_slot_${slotIndex}`;
-                        localStorage.setItem(slotKey, JSON.stringify(importedCards));
+                        await setDBData('slots_data', slotKey, importedCards);
                         
                         const now = new Date();
                         const formattedDate = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
-                        setSlotMetadata(slotIndex, formattedDate);
+                        await setSlotMetadata(slotIndex, formattedDate);
                         
                         alert(`Dáta úspešne vložené do Slotu ${slotIndex}!`);
-                        buildSlotsUI();
+                        await buildSlotsUI();
                         
                         if(confirm(`Chceš vložené dáta zo Slotu ${slotIndex} rovno načítať na obrazovku?`)) {
                             cards = importedCards;
-                            saveToLocalStorage();
+                            await saveToLocalStorage();
                             renderApp();
                         }
                     } else {
@@ -1027,12 +1187,12 @@
             const file = event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 try {
                     const importedCards = JSON.parse(e.target.result);
                     if(Array.isArray(importedCards)) {
                         cards = importedCards;
-                        saveToLocalStorage();
+                        await saveToLocalStorage();
                         renderApp();
                         alert('Dáta z JSON súboru úspešne importované a zobrazené!');
                     } else {
@@ -1046,17 +1206,17 @@
             reader.readAsText(file);
         }
 
-        function wipeEntireDatabase() {
+        async function wipeEntireDatabase() {
             if(confirm('⚠️ UPOZORNENIE: Naozaj chceš kompletne vymazať celú databázu zobrazených kartičiek?')) {
                 if(cards.length > 0 && confirm('Chceš si súčasnú databázu pred vymazaním zálohovať do jedného zo 4 slotov? (Ak dáš Nie, dáta sa definitívne zmažú)')) {
                     const slotSelection = prompt('Do ktorého slotu si praješ dáta odložiť? Napíš iba číslo od 1 do 4:');
                     const slotNum = parseInt(slotSelection);
                     if(slotNum >= 1 && slotNum <= 4) {
                         const slotKey = `arcicards_slot_${slotNum}`;
-                        localStorage.setItem(slotKey, JSON.stringify(cards));
+                        await setDBData('slots_data', slotKey, cards);
                         const now = new Date();
                         const formattedDate = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
-                        setSlotMetadata(slotNum, formattedDate);
+                        await setSlotMetadata(slotNum, formattedDate);
                         alert(`Aktuálna databáza bola odložená do Slotu ${slotNum}.`);
                     } else {
                         alert('Neplatná voľba slotu. Pokračujem vo vymazaní bez uloženia zálohy.');
@@ -1064,9 +1224,9 @@
                 }
                 
                 cards = [];
-                localStorage.removeItem('arcicards_cards');
+                await deleteDBData('app_data', 'arcicards_cards');
                 renderApp();
-                buildSlotsUI();
+                await buildSlotsUI();
                 alert('Hlavná databáza kartičiek bola kompletne vymazaná.');
                 closeModal('settingsModal');
             }
