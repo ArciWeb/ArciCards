@@ -532,7 +532,7 @@
                     <option value="set">Set</option>
                     <option value="year">Sezóna</option>
                     <option value="price">Cena</option>
-                    <option value="dateAdded">Dátumu pridania</option>
+                    <option value="dateAdded">Dátum</option>
                 </select>
                 <select id="sortDirectionSelect" onchange="handleSortDirectionChange()" style="padding:10px; background:rgba(0,0,0,0.4); color:white; border-radius:0 6px 6px 0; border:1px solid var(--border-color); font-size:0.95rem;">
                     <option value="asc">Vzostupne</option>
@@ -575,15 +575,23 @@
             </div>
         </div>
     </div>
+        <div class="section" id="statsSummarySection" style="padding: 6px;">
+        <div class="filter-header" onclick="toggleFilter('summaryBoxContentBox')" style="background: rgba(0,0,0,0.2); padding: 14px; margin-top: 0; border-radius: 8px;">
+            <span style="font-size: 1.05rem;">📊 Štatistický prehľad zbierky</span><span id="summaryBoxContentBox-indicator">▼</span>
+        </div>
+        
+        <div id="summaryBoxContentBox" class="filter-content" style="background: transparent; max-height: none; padding: 0; overflow: visible; border: none; margin-top: 10px;">
+            <div class="summary-box" id="summaryBoxContent" style="background: var(--card-bg); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);"></div>
+        </div>
+    </div>
+
+
 
     <div class="cards-grid" id="cardsGrid"></div>
     
     <div class="pagination-container" id="paginationContainer"></div>
 
-    <div class="section" id="statsSummarySection">
-        <h3 style="margin-top: 0; margin-bottom: 14px; border-bottom: 2px solid var(--border-color); padding-bottom: 8px; font-size: 1.15rem; color: var(--accent-color); text-transform: uppercase; letter-spacing: 0.5px;">📊 Štatistický prehľad zbierky</h3>
-        <div class="summary-box" id="summaryBoxContent"></div>
-    </div>
+
 
     <div id="albumViewOverlay" class="album-view-overlay">
         <span class="album-close-btn" onclick="closeAlbumView()">&times;</span>
