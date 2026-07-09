@@ -942,8 +942,8 @@
                 for(let d = 0; d < detailsImages.length; d++) {
                     // Ak to nie je prvá požiadavka, počkáme 3 sekundy kvôli obmedzeniu rýchlosti Groq API
                     if (d > 0) {
-                        document.getElementById('bulkStatusText').innerText = `Čakám na uvoľnenie API (3s pauza)...`;
-                        await sleep(3000);
+                        document.getElementById('bulkStatusText').innerText = `Čakám na uvoľnenie API (6s pauza)...`;
+                        await sleep(6000);
                     }
 
                     document.getElementById('bulkStatusText').innerText = `AI analyzuje a priraďuje správnu kartu k popisu ${d+1} z ${detailsImages.length}...`;
