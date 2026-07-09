@@ -900,7 +900,10 @@
             }
         }
 
-        // --- HROMADNÁ ANALÝZA A ROZTRIEDENIE (VYLEPŠENÉ INTELLIGENTNÉ PÁROVANIE) ---
+        // Pomocná funkcia na vytvorenie pauzy (delay) v milisekundách
+        const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+        // --- HROMADNÁ ANALÝZA A ROZTRIEDENIE (VYLEPŠENÉ INTELLIGENTNÉ PÁROVANIE S ONESKORENÍM) ---
         async function analyzeBulkImages() {
             const apiKey = document.getElementById('groqApiKey').value;
             if(!apiKey) { alert('Zadaj prosím najprv Groq API Kľúč v nastaveniach.'); return; }
@@ -937,6 +940,12 @@
 
                 // Spracovanie každého popisu s inteligentným hľadaním vizuálneho ekvivalentu
                 for(let d = 0; d < detailsImages.length; d++) {
+                    // Ak to nie je prvá požiadavka, počkáme 3 sekundy kvôli obmedzeniu rýchlosti Groq API
+                    if (d > 0) {
+                        document.getElementById('bulkStatusText').innerText = `Čakám na uvoľnenie API (3s pauza)...`;
+                        await sleep(3000);
+                    }
+
                     document.getElementById('bulkStatusText').innerText = `AI analyzuje a priraďuje správnu kartu k popisu ${d+1} z ${detailsImages.length}...`;
                     
                     const cleanDetailsBase64 = detailsImages[d].base64.split(',')[1];
@@ -982,6 +991,12 @@
                     });
 
                     const data = await response.json();
+                    
+                    // Ošetrenie chybového stavu z API odpovede pred parsovaním textu
+                    if (data.error) {
+                        throw new Error(data.error.message || "Chyba na strane Groq API");
+                    }
+
                     const resText = data.choices[0].message.content;
                     const parsed = JSON.parse(resText);
 
@@ -1016,11 +1031,12 @@
 
             } catch (err) {
                 console.error(err);
-                alert('Chyba pri hromadnej analýze. Skontrolujte kľúč a konzolu.');
+                alert('Chyba pri hromadnej analýze. Skontrolujte kľúč a konzolu. Detaily: ' + err.message);
             } finally {
                 document.getElementById('bulkAiLoading').style.display = 'none';
             }
         }
+
 
         function openBulkStep(index) {
             if(index >= bulkQueue.length) {
