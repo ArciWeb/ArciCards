@@ -1,4 +1,4 @@
-const CACHE_NAME = 'arcicards-v2'; // Zmena verzie z v1 na v2 prinúti aplikáciu aktualizovať sa
+const CACHE_NAME = 'arcicards-v3'; // Zvýšená verzia cache prinúti PWA okamžite nahrať zmeny
 const ASSETS_TO_CACHE = [
   'index.html',
   'manifest.json',
@@ -11,10 +11,10 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Cachujem dôležité súbory aplikácie');
+        console.log('Cachujem dôležité súbory aplikácie (v3)');
         return cache.addAll(ASSETS_TO_CACHE);
       })
-      .then(() => self.skipWaiting())
+      .then(() => self.skipWaiting()) // Prinúti nového SW stať sa okamžite aktívnym
   );
 });
 
@@ -30,7 +30,7 @@ self.addEventListener('activate', event => {
           }
         })
       );
-    }).then(() => self.clients.claim())
+    }).then(() => self.clients.claim()) // Okamžite preberie kontrolu nad všetkými otvorenými oknami aplikácie
   );
 });
 

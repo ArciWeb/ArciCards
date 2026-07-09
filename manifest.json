@@ -1,7 +1,7 @@
 {
   "name": "ArciCards",
   "short_name": "ArciCards",
-  "description": "Inteligentná správa a AI analizá športových trading kartičiek",
+  "description": "Inteligentná správa a AI analýza športových trading kartičiek",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#121212",
