@@ -321,6 +321,24 @@
             z-index: 5;
         }
 
+        /* ŠPECIFICKÝ ŠTÝL PRE ZVÄČŠENÚ CENU V PRAVOM DOLNOM ROHU */
+        .card-info-bottom-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: auto;
+            width: 100%;
+        }
+
+        .card-info-price-large {
+            font-size: 1.25rem;
+            font-weight: 900;
+            color: var(--accent-color);
+            text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+            margin-left: auto;
+            white-space: nowrap;
+        }
+
         .fav-icon {
             position: absolute;
             top: 12px;
@@ -553,6 +571,20 @@
                 <div class="filter-item"><input type="checkbox" id="chk-fav" onchange="handleFilterChange()"> Zobraziť iba obľúbené</div>
             </div>
 
+            <div class="filter-header" onclick="toggleFilter('f-price-range')"><span>💰 Cena (Rozmedzie)</span><span id="f-price-range-indicator">▼</span></div>
+            <div id="f-price-range" class="filter-content" style="max-height: none;">
+                <div style="display: flex; gap: 10px; align-items: center; padding: 6px 0;">
+                    <div style="display: flex; flex-direction: column; flex: 1;">
+                        <span style="font-size: 0.8rem; color: #aaa; margin-bottom: 4px;">Od (€):</span>
+                        <input type="number" id="priceFrom" placeholder="0.00" step="0.01" min="0" oninput="handleFilterChange()" style="padding: 8px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); color: white; border-radius: 6px; width: 100%; box-sizing: border-box;">
+                    </div>
+                    <div style="display: flex; flex-direction: column; flex: 1;">
+                        <span style="font-size: 0.8rem; color: #aaa; margin-bottom: 4px;">Do (€):</span>
+                        <input type="number" id="priceTo" placeholder="Nezadaná" step="0.01" min="0" oninput="handleFilterChange()" style="padding: 8px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); color: white; border-radius: 6px; width: 100%; box-sizing: border-box;">
+                    </div>
+                </div>
+            </div>
+
             <div class="filter-header" onclick="toggleFilter('f-league')"><span>🌍 Liga</span><span id="f-league-indicator">▼</span></div>
             <div id="f-league" class="filter-content"></div>
 
@@ -705,7 +737,7 @@
             </div>
             <div class="form-group" id="bs_fifaTypeContainer" style="display: none;">
                 <label>Značka / Typ FIFA karty</label>
-                <select id="bs_fifaTypeSelect" style="margin-bottom: 6px;" onchange="if(this.value==='custom'){document.getElementById('bs_fifaTypeCustom').style.display='block'}else{document.getElementById('bs_fifaTypeCustom').style.display='none'}">
+                <select id="bs_fifaTypeSelect" style="margin-bottom: 6px;" onchange="if(this.value==='custom'){document.getElementById('f_fifaTypeCustom').style.display='block'}else{document.getElementById('f_fifaTypeCustom').style.display='none'}">
                     <option value="Hráč">Hráč</option>
                     <option value="Manažér">Manažér</option>
                     <option value="Lopta">Lopta</option>
@@ -775,7 +807,7 @@
                     <option value="Trofej">Trofej</option>
                     <option value="Štadión">Štadión</option>
  
-                   <option value="Legenda">Legenda</option>
+                    <option value="Legenda">Legenda</option>
                     <option value="Ultra Legenda">Ultra Legenda</option>
                     <option value="Kvalitný hráč">Kvalitný hráč</option>
                     <option value="Talent">Talent</option>
@@ -828,7 +860,7 @@
                     <option value="golden">✨ Golden Mode (Maximálny lesk & zlato)</option>
                     <option value="premium">💎 Premium Mode (Strieborno-diamantová žiara)</option>
                     <option value="bluemoon">🌙 Blue Moon Mode (Mystika, hlboká modrá & fialová)</option>
-                    <option value="standard">⚙️ Standard Mode (Čistá téma bez špeciálnych efektov)</option>
+                    <option value="standard">⚙️ Standard Mode (Čistá tema bez špeciálnych efektov)</option>
                 </select>
             </div>
 
@@ -1206,6 +1238,8 @@
         function hasActiveFilters() {
             if (document.getElementById('chk-fav').checked) return true;
             if (document.getElementById('chk-num-char').checked) return true;
+            if (document.getElementById('priceFrom').value !== "") return true;
+            if (document.getElementById('priceTo').value !== "") return true;
             if (getSelectedCheckboxes('f-league').length > 0) return true;
             if (getSelectedCheckboxes('f-club').length > 0) return true;
             if (getSelectedCheckboxes('f-manuf').length > 0) return true;
@@ -1219,6 +1253,8 @@
         function clearAllFilters() {
             document.getElementById('chk-fav').checked = false;
             document.getElementById('chk-num-char').checked = false;
+            document.getElementById('priceFrom').value = "";
+            document.getElementById('priceTo').value = "";
             
             const uncheckContainer = (id) => {
                 const el = document.getElementById(id);
@@ -1841,6 +1877,12 @@
             const onlyFav = document.getElementById('chk-fav').checked;
             const onlyCharInNum = document.getElementById('chk-num-char').checked;
 
+            // PREMENNÉ PRE NOVÝ FILTER ROZMEDZIA CIEN
+            const priceFromValue = document.getElementById('priceFrom').value;
+            const priceToValue = document.getElementById('priceTo').value;
+            const priceFrom = priceFromValue !== "" ? parseFloat(priceFromValue) : null;
+            const priceTo = priceToValue !== "" ? parseFloat(priceToValue) : null;
+
             let filteredCards = cards.filter(card => {
                 const cardLeague = card.league || getLeagueForTeam(card.team, "");
                 const insValue = (card.insert && card.insert.trim() !== "") ? card.insert.trim() : "";
@@ -1851,6 +1893,10 @@
                 }
 
                 if(onlyFav && !card.favorite) return false;
+
+                // VALIDÁCIA ROZMEDZIA CIEN (OD - DO)
+                if(priceFrom !== null && card.price < priceFrom) return false;
+                if(priceTo !== null && card.price > priceTo) return false;
 
                 if(selectedLeagues.length > 0 && !selectedLeagues.includes(cardLeague)) return false;
                 if(selectedClubs.length > 0 && !selectedClubs.includes(card.team)) return false;
@@ -1886,7 +1932,7 @@
             filteredCards = sortCards(filteredCards, sortKey, sortDirection);
             
             // Plne interaktívna kaskádová aktualizácia filtrov na základe vybraných hodnôt
-            updateFilterOptions(selectedLeagues, selectedClubs, selectedManufs, selectedSets, selectedSeasons, selectedInserts, selectedCardTypes, query, onlyFav, onlyCharInNum);
+            updateFilterOptions(selectedLeagues, selectedClubs, selectedManufs, selectedSets, selectedSeasons, selectedInserts, selectedCardTypes, query, onlyFav, onlyCharInNum, priceFrom, priceTo);
 
             let totalFilteredPrice = 0;
             let favFilteredCount = 0;
@@ -1974,15 +2020,20 @@
                     fifaBadgeHtml = `<div style="display:inline-flex; align-items:center; background:rgba(3,218,198,0.15); color:#03dac6; border:1px solid rgba(3,218,198,0.3); border-radius:4px; padding:2px 6px; font-size:0.75rem; font-weight:bold; margin-top:4px; width:fit-content;">${icon} ${card.fifaType}</div>`;
                 }
 
+                // UPRAVENÉ ROZLOŽENIE: CENA PRESUNUTÁ DO PRAVÉHO DOLNÉHO ROHU POMOCOU 'card-info-bottom-row' A ZVÄČŠENÁ
                 let infoEl = `
                     <div class="card-info-text">
-                        <div><strong>${card.firstName} ${card.lastName}</strong></div>
-                        <div>${card.team}</div>
-                        <div style="font-size:0.85rem; color:#aaa;">${card.manufacturer} ${card.set}</div>
-                        <div style="font-size:0.85rem; color:#aaa;">${card.year}</div>
-                        <div style="font-size:0.85rem; color:#bbb;">${card.cardImgSymbol} ${card.insert ? '- <span style="font-weight: bold; font-style: italic; color: #fff;">' + card.insert + '</span>' : ''}</div>
-                        ${fifaBadgeHtml}
-                        <div style="margin-top:5px; font-weight:bold; color:var(--accent-color);">${card.price.toFixed(2)} €</div>
+                        <div>
+                            <div><strong>${card.firstName} ${card.lastName}</strong></div>
+                            <div>${card.team}</div>
+                            <div style="font-size:0.85rem; color:#aaa;">${card.manufacturer} ${card.set}</div>
+                            <div style="font-size:0.85rem; color:#aaa;">${card.year}</div>
+                            <div style="font-size:0.85rem; color:#bbb;">${card.cardImgSymbol} ${card.insert ? '- <span style="font-weight: bold; font-style: italic; color: #fff;">' + card.insert + '</span>' : ''}</div>
+                        </div>
+                        <div class="card-info-bottom-row">
+                            ${fifaBadgeHtml}
+                            <div class="card-info-price-large">${card.price.toFixed(2)} €</div>
+                        </div>
                     </div>
                 `;
 
@@ -2045,7 +2096,7 @@
         }
 
         // --- UNIFIKOVANÁ KASKÁDOVÁ DYNAMICKÁ AKTUALIZÁCIA MOŽNOSTÍ FILTROVANIA (Filtre miznú, ak pod nimi nič nie je) ---
-        function updateFilterOptions(selLeagues, selClubs, selManufs, selSets, selSeasons, selInserts, selCardTypes, query, onlyFav, onlyCharInNum) {
+        function updateFilterOptions(selLeagues, selClubs, selManufs, selSets, selSeasons, selInserts, selCardTypes, query, onlyFav, onlyCharInNum, priceFrom, priceTo) {
             
             // Pomocná funkcia, ktorá vráti zoznam kariet orezaný všetkými filtrami OKREM filtra, ktorý sa práve prepočítava
             const getFilteredExcept = (excludeKey) => {
@@ -2059,6 +2110,10 @@
                     }
                     if(onlyFav && !card.favorite) return false;
                     if(onlyCharInNum && /^\d+$/.test(card.cardImgSymbol || '')) return false;
+
+                    // Zahrnutie kontroly cien aj do kaskádových filtrov
+                    if(priceFrom !== null && card.price < priceFrom) return false;
+                    if(priceTo !== null && card.price > priceTo) return false;
 
                     if(excludeKey !== 'league' && selLeagues.length > 0 && !selLeagues.includes(cardLeague)) return false;
                     if(excludeKey !== 'club' && selClubs.length > 0 && !selClubs.includes(card.team)) return false;
