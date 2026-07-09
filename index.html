@@ -21,56 +21,71 @@
             --shadow-style: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
 
-        /* --- TRI VEĽKOLEPÉ LUXUSNÉ TÉMY --- */
-        body.theme-golden {
-            --bg-color: #110d02;
-            --card-bg: rgba(28, 22, 6, 0.85);
-            --text-color: #f4e3b1;
-            --accent-color: #ffd700;
-            --primary-button: #8a6f27;
-            --border-color: #54431b;
-            --shadow-style: 0 8px 32px 0 rgba(212, 175, 55, 0.2);
-            background: linear-gradient(125deg, #0d0a02, #1f1807, #3d300e, #1f1807, #0d0a02);
-            background-size: 400% 400%;
-            animation: floatingShine 15s ease infinite;
+        /* --- ZÁKLADNÁ TÉMA (PEKNÉ FARBY, ŽIADNE EFEKTY) --- */
+        body.theme-standard {
+            --bg-color: #0f111a;
+            --card-bg: #161925;
+            --text-color: #f0f2f5;
+            --accent-color: #03dac6;
+            --primary-button: #1f2335;
+            --border-color: #262b40;
+            --shadow-style: 0 4px 16px 0 rgba(0, 0, 0, 0.5);
+            background: #0f111a;
         }
-        body.theme-golden::before {
-            content: ''; position: fixed; top:0; left:0; width:100vw; height:100vh; z-index:-2; pointer-events:none;
-            background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,215,0,0.08) 0%, rgba(0,0,0,0) 70%);
+
+        /* --- TRI VEĽKOLEPÉ LUXUSNÉ TÉMY (OPRAVENÉ PREKRÝVANIE) --- */
+        body.theme-golden {
+            --bg-color: #140f02;
+            --card-bg: rgba(35, 28, 8, 0.9);
+            --text-color: #f7e7ba;
+            --accent-color: #ffea43;
+            --primary-button: #9e802b;
+            --border-color: #6e5824;
+            --shadow-style: 0 8px 32px 0 rgba(255, 234, 67, 0.15);
+            background: linear-gradient(125deg, #0f0a02, #261d08, #4f3e13, #261d08, #0f0a02);
+            background-size: 400% 400%;
+            animation: floatingShine 10s ease infinite;
         }
 
         body.theme-premium {
-            --bg-color: #0f1115;
-            --card-bg: rgba(22, 25, 30, 0.85);
-            --text-color: #e2e8f0;
-            --accent-color: #e2e8f0;
-            --primary-button: #4a5568;
-            --border-color: #3a4454;
-            --shadow-style: 0 8px 32px 0 rgba(226, 232, 240, 0.15);
-            background: linear-gradient(135deg, #0a0c10, #1a1e24, #2d333f, #1a1e24, #0a0c10);
+            --bg-color: #0d1017;
+            --card-bg: rgba(26, 31, 41, 0.9);
+            --text-color: #f1f5f9;
+            --accent-color: #ffffff;
+            --primary-button: #5e6e85;
+            --border-color: #475569;
+            --shadow-style: 0 8px 32px 0 rgba(255, 255, 255, 0.12);
+            background: linear-gradient(135deg, #080a0f, #222936, #404b5c, #222936, #080a0f);
             background-size: 400% 400%;
-            animation: floatingShine 12s ease infinite;
-        }
-        body.theme-premium::before {
-            content: ''; position: fixed; top:0; left:0; width:100vw; height:100vh; z-index:-2; pointer-events:none;
-            background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,255,255,0.06) 0%, rgba(0,0,0,0) 60%);
+            animation: floatingShine 8s ease infinite;
         }
 
         body.theme-bluemoon {
-            --bg-color: #040814;
-            --card-bg: rgba(10, 16, 36, 0.85);
-            --text-color: #d1dbff;
-            --accent-color: #ffeb3b; 
-            --primary-button: #2a3b7c;
-            --border-color: #1e295d;
-            --shadow-style: 0 8px 32px 0 rgba(111, 66, 193, 0.3);
-            background: linear-gradient(145deg, #02040a, #081026, #1c1535, #081026, #02040a);
+            --bg-color: #020512;
+            --card-bg: rgba(12, 20, 48, 0.9);
+            --text-color: #dbe4ff;
+            --accent-color: #fff159; 
+            --primary-button: #31469c;
+            --border-color: #253475;
+            --shadow-style: 0 8px 32px 0 rgba(142, 68, 227, 0.25);
+            background: linear-gradient(145deg, #01030d, #0b1536, #281d4a, #0b1536, #01030d);
             background-size: 400% 400%;
-            animation: floatingShine 18s ease infinite;
+            animation: floatingShine 12s ease infinite;
         }
-        body.theme-bluemoon::before {
-            content: ''; position: fixed; top:0; left:0; width:100vw; height:100vh; z-index:-2; pointer-events:none;
-            background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(138,43,226,0.12) 0%, rgba(0,0,0,0) 65%);
+
+        /* --- GLOBÁLNY SVETELNÝ ODLESK NA POZADÍ (IZOLOVANÝ CEZ Z-INDEX) --- */
+        .bg-glow-layer {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: -1;
+        }
+        body.theme-standard .bg-glow-layer { display: none; }
+        body.theme-golden .bg-glow-layer {
+            background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,234,67,0.18) 0%, rgba(0,0,0,0) 60%);
+        }
+        body.theme-premium .bg-glow-layer {
+            background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,255,255,0.15) 0%, rgba(0,0,0,0) 55%);
+        }
+        body.theme-bluemoon .bg-glow-layer {
+            background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(142,68,227,0.22) 0%, rgba(0,0,0,0) 60%);
         }
 
         @keyframes floatingShine {
@@ -95,14 +110,13 @@
         body.size-large h1 { font-size: 1.9rem; }
         body.size-extralarge h1 { font-size: 2.2rem; }
 
-        /* --- ZÁKLADNÉ ŠTÝLY S VYSOKÝM LESKOM --- */
+        /* --- ZÁKLADNÉ ŠTÝLY --- */
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
             padding: 12px;
-            transition: background 0.5s ease, color 0.3s ease, font-size 0.2s ease;
-            backdrop-filter: blur(2px);
+            transition: background 0.3s ease, color 0.3s ease, font-size 0.2s ease;
             position: relative;
             z-index: 1;
         }
@@ -115,7 +129,6 @@
             padding: 16px;
             margin-bottom: 16px;
             box-shadow: var(--shadow-style);
-            backdrop-filter: blur(10px);
             position: relative;
             z-index: 10;
         }
@@ -188,12 +201,11 @@
             border-radius: 12px;
             border: 1px solid var(--border-color);
             box-shadow: var(--shadow-style);
-            backdrop-filter: blur(10px);
             position: relative;
             overflow: hidden;
             z-index: 3;
         }
-        .section::after {
+        body:not(.theme-standard) .section::after {
             content: ''; position: absolute; top:0; left:0; width:100%; height:100%;
             background: var(--shine-effect); pointer-events: none; z-index: -1;
         }
@@ -257,11 +269,10 @@
             flex-direction: row;
             box-shadow: var(--shadow-style);
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            backdrop-filter: blur(5px);
             overflow: hidden;
             z-index: 5;
         }
-        .card-box::after {
+        body:not(.theme-standard) .card-box::after {
             content: ''; position: absolute; top:-50%; left:-50%; width:200%; height:200%;
             background: linear-gradient(45deg, transparent, rgba(255,255,255,0.05), transparent);
             transform: rotate(45deg); transition: 0.5s; pointer-events: none; z-index: -1;
@@ -272,7 +283,7 @@
             box-shadow: 0 12px 24px rgba(0,0,0,0.5);
             z-index: 6;
         }
-        .card-box:hover::after { left: 100%; transition: 0.7s; }
+        body:not(.theme-standard) .card-box:hover::after { left: 100%; transition: 0.7s; }
 
         .only-cards-mode .card-box {
             flex-direction: column;
@@ -408,30 +419,54 @@
         .summary-item.grand-total { border-top: 2px solid var(--accent-color); border-bottom: none; padding-top: 10px; margin-top: 6px; }
         .summary-item.grand-total .value { color: var(--accent-color); font-size: 1.1rem; text-shadow: 0 0 5px rgba(255,255,255,0.1); }
 
-        /* Režim Celého Albumu s fixným ošetrením prekrývania a veľkostí */
+        /* REŽIM CELÉHO ALBUMU (DOKONALÁ FIXÁCIA A ROZLOŽENIE NA CELÚ OBRAZOVKU) */
         .album-view-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background-color: var(--bg-color); background-image: var(--body-bg-gradient); z-index: 2500; overflow-y: auto; padding: 20px; box-sizing: border-box;
+            display: none; 
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100vw; height: 100vh;
+            background-color: var(--bg-color); 
+            background-image: var(--body-bg-gradient); 
+            z-index: 5000; 
+            overflow-y: auto; 
+            padding: 20px; 
+            box-sizing: border-box;
         }
         .album-close-btn {
             position: fixed; top: 15px; right: 25px; font-size: 2.5rem; color: var(--text-color);
-            cursor: pointer; z-index: 2600; text-shadow: 0 2px 10px rgba(0,0,0,0.9); transition: transform 0.2s;
+            cursor: pointer; z-index: 5100; text-shadow: 0 2px 10px rgba(0,0,0,0.9); transition: transform 0.2s;
         }
         .album-close-btn:hover { transform: scale(1.2); }
         
-        /* Album grid presne 6 v riadku na PC, zmenšené obrázky */
+        /* Album grid striktne 6 v riadku za každých okolností na mobiloch aj PC, miniatúrne fotky */
         .album-grid {
-            display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-top: 65px; position: relative; z-index: 2550; padding-bottom: 40px;
+            display: grid; 
+            grid-template-columns: repeat(6, 1fr); 
+            gap: 8px; 
+            margin-top: 65px; 
+            position: relative; 
+            z-index: 5050; 
+            padding-bottom: 40px;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
         }
-        @media(max-width: 1024px) { .album-grid { grid-template-columns: repeat(4, 1fr); } }
-        @media(max-width: 600px) { .album-grid { grid-template-columns: repeat(3, 1fr); } }
 
         .album-item {
-            aspect-ratio: 2.5 / 3.5; border-radius: 6px; overflow: hidden; border: 1px solid var(--border-color);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5); transition: transform 0.2s; background: #222; cursor: pointer;
-            width: 100%; max-width: 120px; margin: 0 auto;
+            aspect-ratio: 2.5 / 3.5; 
+            border-radius: 4px; 
+            overflow: hidden; 
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
+            transition: transform 0.2s; 
+            background: #222; 
+            cursor: pointer;
+            width: 100%; 
+            max-width: 55px; /* Polovičná veľkosť miniatúr */
+            margin: 0 auto;
         }
-        .album-item:hover { transform: scale(1.06); border-color: var(--accent-color); z-index: 2560; }
+        .album-item:hover { transform: scale(1.1); border-color: var(--accent-color); z-index: 5060; }
         .album-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
         /* Vizuálny štýl pre vycentrované import/export tlačidlá a sloty */
@@ -474,13 +509,15 @@
 </head>
 <body class="theme-golden font-standard size-medium">
 
+    <div class="bg-glow-layer"></div>
+
     <div class="top-control-panel">
         <header>
-            <h1>ArciCards 🎴</h1>
+            <h1>ArciCards</h1>
             <div style="display:flex; gap:8px; align-items:center;">
-                <button onclick="openModal('settingsModal')" title="Nastavenia">⚙️ Nastavenia</button>
-                <button class="btn-secondary" onclick="openModal('bulkAddModal')" title="Hromadné pridanie">++ Várka</button>
-                <button class="btn-primary" onclick="openModal('addCardModal')" title="Pridať kartu">+ Karta</button>
+                <button onclick="openModal('settingsModal')" title="Nastavenia">⚙️ </button>
+                <button class="btn-secondary" onclick="openModal('bulkAddModal')" title="Hromadné pridanie">++ </button>
+                <button class="btn-primary" onclick="openModal('addCardModal')" title="Pridať kartu">+ </button>
             </div>
         </header>
 
@@ -676,6 +713,12 @@
             <span class="close-modal" onclick="closeModal('settingsModal')">&times;</span>
             <h2 style="color: var(--accent-color); border-bottom: 2px solid var(--border-color); padding-bottom: 8px;">Nastavenia aplikácie</h2>
             
+            <div style="margin: 5px 0 20px 0;">
+                <button type="button" class="btn-primary" style="width: 100%; padding: 14px; font-size: 1.1rem; background: var(--accent-color); color:#000; box-shadow: 0 4px 14px rgba(0,0,0,0.4);" onclick="openAlbumView()">
+                    📖 Otvoriť čistý album zbierky (6 v riadku)
+                </button>
+            </div>
+
             <h3>Režim zobrazenia kartičiek</h3>
             <div class="view-modes">
                 <button id="view-both" class="active" onclick="setViewMode('both')">Karta aj Popis</button>
@@ -693,18 +736,13 @@
                 </select>
             </div>
 
-            <div style="margin: 15px 0;">
-                <button type="button" class="btn-primary" style="width: 100%; padding: 12px; font-size: 1.05rem; background: #e2e8f0; color:#000;" onclick="openAlbumView()">
-                    📖 Otvoriť čistý album zbierky (6 v riadku)
-                </button>
-            </div>
-
             <div class="form-group">
-                <label style="color: var(--accent-color); font-size: 1rem; margin-top: 5px;">👑 Luxusná Grafická Téma</label>
+                <label style="color: var(--accent-color); font-size: 1rem; margin-top: 5px;">👑 Grafická Téma</label>
                 <select id="themeSelect" onchange="changeAppTheme(this.value)" style="border-color: var(--accent-color); font-weight: bold;">
                     <option value="golden">✨ Golden Mode (Maximálny lesk & zlato)</option>
                     <option value="premium">💎 Premium Mode (Strieborno-diamantová žiara)</option>
                     <option value="bluemoon">🌙 Blue Moon Mode (Mystika, hlboká modrá & fialová)</option>
+                    <option value="standard">⚙️ Standard Mode (Čistá téma bez špeciálnych efektov)</option>
                 </select>
             </div>
 
@@ -919,7 +957,7 @@
             });
         }
 
-        // --- DYNAMICKÉ OVLÁDANIE KROUŽENIA SVETLA PRE PREMIUM TÉMY V POZADÍ ---
+        // --- DYNAMICKÉ OVLÁDANIE KRÚŽENIA SVETLA PRE PREMIUM TÉMY V POZADÍ ---
         window.addEventListener('mousemove', e => {
             document.body.style.setProperty('--x', e.clientX + 'px');
             document.body.style.setProperty('--y', e.clientY + 'px');
@@ -927,7 +965,7 @@
 
         // --- OBSLUHA NASTAVENÍ TÉMY, FONTU A VEĽKOSTÍ ---
         function changeAppTheme(themeName) {
-            document.body.classList.remove('theme-golden', 'theme-premium', 'theme-bluemoon');
+            document.body.classList.remove('theme-golden', 'theme-premium', 'theme-bluemoon', 'theme-standard');
             document.body.classList.add('theme-' + themeName);
             localStorage.setItem('arcicards_theme', themeName);
         }
@@ -944,7 +982,7 @@
             localStorage.setItem('arcicards_fontsize', sizeName);
         }
 
-        // --- REŽIM UČELENÉHO ALBUMU (BEZ TEXTOV, MAX 6 V RIADKU) ---
+        // --- REŽIM UČELENÉHO ALBUMU (ÚPLNÁ FIXÁCIA, BEZ PREKRÝVANIA A S MINIATÚRAMI) ---
         function openAlbumView() {
             closeModal('settingsModal');
             const overlay = document.getElementById('albumViewOverlay');
@@ -966,11 +1004,13 @@
                 });
             }
             overlay.style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Deaktivuje scrollovanie hlavnej stránky pod albumom
             window.history.pushState({ type: 'album' }, '');
         }
 
         function closeAlbumView() {
             document.getElementById('albumViewOverlay').style.display = 'none';
+            document.body.style.overflow = ''; // Vráti scrollovanie hlavnej stránke
         }
 
         window.addEventListener('DOMContentLoaded', async () => {
