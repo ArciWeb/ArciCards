@@ -568,14 +568,20 @@
             <div class="filter-header" onclick="toggleFilter('f-season')"><span>📅 Sezóna</span><span id="f-season-indicator">▼</span></div>
             <div id="f-season" class="filter-content"></div>
 
-            <div class="filter-header" onclick="toggleFilter('f-type')"><span>⚡ Ostatné typy</span><span id="f-type-indicator">▼</span></div>
+            <div class="filter-header" onclick="toggleFilter('f-insert')"><span>📦 Insert typ</span><span id="f-insert-indicator">▼</span></div>
+            <div id="f-insert" class="filter-content"></div>
+
+            <div class="filter-header" onclick="toggleFilter('f-cardtype')"><span>⚡ Typ karty (FIFA)</span><span id="f-cardtype-indicator">▼</span></div>
+            <div id="f-cardtype" class="filter-content"></div>
+
+            <div class="filter-header" onclick="toggleFilter('f-type')"><span>⚡ Ostatné filtre</span><span id="f-type-indicator">▼</span></div>
             <div id="f-type" class="filter-content">
-                <div class="filter-item"><input type="checkbox" id="chk-has-insert" onchange="handleFilterChange()"> Má Insert</div>
                 <div class="filter-item"><input type="checkbox" id="chk-num-char" onchange="handleFilterChange()"> Obsahuje písmeno v čísle karty</div>
             </div>
         </div>
     </div>
-        <div class="section" id="statsSummarySection" style="padding: 6px;">
+    
+    <div class="section" id="statsSummarySection" style="padding: 6px;">
         <div class="filter-header" onclick="toggleFilter('summaryBoxContentBox')" style="background: rgba(0,0,0,0.2); padding: 14px; margin-top: 0; border-radius: 8px;">
             <span style="font-size: 1.05rem;">📊 Štatistický prehľad zbierky</span><span id="summaryBoxContentBox-indicator">▼</span>
         </div>
@@ -585,13 +591,9 @@
         </div>
     </div>
 
-
-
     <div class="cards-grid" id="cardsGrid"></div>
     
     <div class="pagination-container" id="paginationContainer"></div>
-
-
 
     <div id="albumViewOverlay" class="album-view-overlay">
         <span class="album-close-btn" onclick="closeAlbumView()">&times;</span>
@@ -627,6 +629,24 @@
             <div class="form-group"><label>Číslo sezóny (napr. 2023-24)</label><input type="text" id="f_year"></div>
             <div class="form-group"><label>Číslo / Znak karty</label><input type="text" id="f_cardImgSymbol"></div>
             <div class="form-group"><label>Insert</label><input type="text" id="f_insert"></div>
+            
+            <hr style="border-color:var(--border-color); margin:14px 0;">
+            <div class="form-group" style="flex-direction: row; align-items: center; gap: 10px; margin-bottom: 8px;">
+                <input type="checkbox" id="f_isFifa" style="width: 20px; height: 20px; cursor: pointer;" onchange="document.getElementById('f_fifaTypeContainer').style.display = this.checked ? 'flex' : 'none'">
+                <label for="f_isFifa" style="margin-bottom: 0; cursor: pointer;">Označit ako FIFA kartu</label>
+            </div>
+            <div class="form-group" id="f_fifaTypeContainer" style="display: none;">
+                <label>Značka / Typ FIFA karty</label>
+                <select id="f_fifaTypeSelect" style="margin-bottom: 6px;" onchange="if(this.value==='custom'){document.getElementById('f_fifaTypeCustom').style.display='block'}else{document.getElementById('f_fifaTypeCustom').style.display='none'}">
+                    <option value="Hráč">Hráč</option>
+                    <option value="Manažér">Manažér</option>
+                    <option value="Lopta">Lopta</option>
+                    <option value="Trofej">Trofej</option>
+                    <option value="Štadión">Štadión</option>
+                    <option value="custom">- Vlastný názov -</option>
+                </select>
+                <input type="text" id="f_fifaTypeCustom" placeholder="Zadaj vlastný typ (napr. Logo)" style="display: none;">
+            </div>
 
             <button type="button" style="width: 100%; padding: 12px; margin-top: 10px;" onclick="stepTwoPrice()">Pokračovať na zadanie ceny</button>
         </div>
@@ -673,6 +693,24 @@
             <div class="form-group"><label>Číslo / Znak karty</label><input type="text" id="bs_cardImgSymbol"></div>
             <div class="form-group"><label>Insert</label><input type="text" id="bs_insert"></div>
             
+            <hr style="border-color:var(--border-color); margin:14px 0;">
+            <div class="form-group" style="flex-direction: row; align-items: center; gap: 10px; margin-bottom: 8px;">
+                <input type="checkbox" id="bs_isFifa" style="width: 20px; height: 20px; cursor: pointer;" onchange="document.getElementById('bs_fifaTypeContainer').style.display = this.checked ? 'flex' : 'none'">
+                <label for="bs_isFifa" style="margin-bottom: 0; cursor: pointer;">Označit ako FIFA kartu</label>
+            </div>
+            <div class="form-group" id="bs_fifaTypeContainer" style="display: none;">
+                <label>Značka / Typ FIFA karty</label>
+                <select id="bs_fifaTypeSelect" style="margin-bottom: 6px;" onchange="if(this.value==='custom'){document.getElementById('bs_fifaTypeCustom').style.display='block'}else{document.getElementById('bs_fifaTypeCustom').style.display='none'}">
+                    <option value="Hráč">Hráč</option>
+                    <option value="Manažér">Manažér</option>
+                    <option value="Lopta">Lopta</option>
+                    <option value="Trofej">Trofej</option>
+                    <option value="Štadión">Štadión</option>
+                    <option value="custom">- Vlastný názov -</option>
+                </select>
+                <input type="text" id="bs_fifaTypeCustom" placeholder="Zadaj vlastný typ (napr. Logo)" style="display: none;">
+            </div>
+
             <hr style="border-color:var(--border-color); margin:18px 0;">
             <div class="form-group">
                 <label>Zadanie ceny kartičky (€)</label>
@@ -712,6 +750,26 @@
             <div class="form-group"><label>Číslo sezóny</label><input type="text" id="e_year"></div>
             <div class="form-group"><label>Číslo / Znak karty</label><input type="text" id="e_cardImgSymbol"></div>
             <div class="form-group"><label>Insert</label><input type="text" id="e_insert"></div>
+            
+            <hr style="border-color:var(--border-color); margin:14px 0;">
+            <div class="form-group" style="flex-direction: row; align-items: center; gap: 10px; margin-bottom: 8px;">
+                <input type="checkbox" id="e_isFifa" style="width: 20px; height: 20px; cursor: pointer;" onchange="document.getElementById('e_fifaTypeContainer').style.display = this.checked ? 'flex' : 'none'">
+                <label for="e_isFifa" style="margin-bottom: 0; cursor: pointer;">Označit ako FIFA kartu</label>
+            </div>
+            <div class="form-group" id="e_fifaTypeContainer" style="display: none;">
+                <label>Značka / Typ FIFA karty</label>
+                <select id="e_fifaTypeSelect" style="margin-bottom: 6px;" onchange="if(this.value==='custom'){document.getElementById('e_fifaTypeCustom').style.display='block'}else{document.getElementById('e_fifaTypeCustom').style.display='none'}">
+                    <option value="Hráč">Hráč</option>
+                    <option value="Manažér">Manažér</option>
+                    <option value="Lopta">Lopta</option>
+                    <option value="Trofej">Trofej</option>
+                    <option value="Štadión">Štadión</option>
+                    <option value="custom">- Vlastný názov -</option>
+                </select>
+                <input type="text" id="e_fifaTypeCustom" placeholder="Zadaj vlastný typ (napr. Logo)" style="display: none;">
+            </div>
+            <hr style="border-color:var(--border-color); margin:14px 0;">
+
             <div class="form-group"><label>Cena (€)</label><input type="number" id="e_price" step="0.01"></div>
 
             <div style="display:flex; justify-content: space-between; margin-top:18px; gap:10px;">
@@ -1054,13 +1112,13 @@
                 });
             }
             overlay.style.display = 'block';
-            document.body.style.overflow = 'hidden'; // Deaktivuje scrollovanie hlavnej stránky pod albumom
+            document.body.style.overflow = 'hidden'; 
             window.history.pushState({ type: 'album' }, '');
         }
 
         function closeAlbumView() {
             document.getElementById('albumViewOverlay').style.display = 'none';
-            document.body.style.overflow = ''; // Vráti scrollovanie hlavnej stránke
+            document.body.style.overflow = ''; 
         }
 
         window.addEventListener('DOMContentLoaded', async () => {
@@ -1132,19 +1190,19 @@
 
         function hasActiveFilters() {
             if (document.getElementById('chk-fav').checked) return true;
-            if (document.getElementById('chk-has-insert').checked) return true;
             if (document.getElementById('chk-num-char').checked) return true;
             if (getSelectedCheckboxes('f-league').length > 0) return true;
             if (getSelectedCheckboxes('f-club').length > 0) return true;
             if (getSelectedCheckboxes('f-manuf').length > 0) return true;
             if (getSelectedCheckboxes('f-set').length > 0) return true;
             if (getSelectedCheckboxes('f-season').length > 0) return true;
+            if (getSelectedCheckboxes('f-insert').length > 0) return true;
+            if (getSelectedCheckboxes('f-cardtype').length > 0) return true;
             return false;
         }
 
         function clearAllFilters() {
             document.getElementById('chk-fav').checked = false;
-            document.getElementById('chk-has-insert').checked = false;
             document.getElementById('chk-num-char').checked = false;
             
             const uncheckContainer = (id) => {
@@ -1156,6 +1214,8 @@
             uncheckContainer('f-manuf');
             uncheckContainer('f-set');
             uncheckContainer('f-season');
+            uncheckContainer('f-insert');
+            uncheckContainer('f-cardtype');
         }
 
         function handleFilterChange() {
@@ -1439,6 +1499,11 @@
                 document.getElementById('bs_year').value = parsed.year || '';
                 document.getElementById('bs_cardImgSymbol').value = parsed.cardImgSymbol || '';
                 document.getElementById('bs_insert').value = parsed.insert || '';
+                document.getElementById('bs_isFifa').checked = false;
+                document.getElementById('bs_fifaTypeContainer').style.display = 'none';
+                document.getElementById('bs_fifaTypeSelect').value = 'Hráč';
+                document.getElementById('bs_fifaTypeCustom').value = '';
+                document.getElementById('bs_fifaTypeCustom').style.display = 'none';
                 document.getElementById('bs_price').value = "0.00";
 
                 document.getElementById('bulkAiLoading').style.display = 'none';
@@ -1483,6 +1548,13 @@
                 }
             }
 
+            let fifaTag = "";
+            if (document.getElementById('bs_isFifa').checked) {
+                const sel = document.getElementById('bs_fifaTypeSelect').value;
+                fifaTag = (sel === 'custom') ? document.getElementById('bs_fifaTypeCustom').value.trim() : sel;
+                if (!fifaTag) fifaTag = "FIFA";
+            }
+
             const currentCard = bulkCardImages[bulkCurrentCardIndex];
             const newCard = {
                 id: (Date.now() + bulkCurrentCardIndex).toString(),
@@ -1497,7 +1569,8 @@
                 insert: document.getElementById('bs_insert').value,
                 price: parseFloat(document.getElementById('bs_price').value) || 0,
                 image: currentCard.base64,
-                favorite: false
+                favorite: false,
+                fifaType: fifaTag 
             };
 
             cards.push(newCard);
@@ -1553,6 +1626,13 @@
                 }
             }
 
+            let fifaTag = "";
+            if (document.getElementById('f_isFifa').checked) {
+                const sel = document.getElementById('f_fifaTypeSelect').value;
+                fifaTag = (sel === 'custom') ? document.getElementById('f_fifaTypeCustom').value.trim() : sel;
+                if (!fifaTag) fifaTag = "FIFA";
+            }
+
             const newCard = {
                 id: Date.now().toString(),
                 firstName: firstName,
@@ -1566,7 +1646,8 @@
                 insert: document.getElementById('f_insert').value,
                 price: price,
                 image: currentCardImageBase64,
-                favorite: false
+                favorite: false,
+                fifaType: fifaTag 
             };
 
             cards.push(newCard);
@@ -1584,6 +1665,11 @@
             document.getElementById('f_insert').value = '';
             document.getElementById('inputCardImg').value = '';
             document.getElementById('inputDetailsImg').value = '';
+            document.getElementById('f_isFifa').checked = false;
+            document.getElementById('f_fifaTypeContainer').style.display = 'none';
+            document.getElementById('f_fifaTypeSelect').value = 'Hráč';
+            document.getElementById('f_fifaTypeCustom').value = '';
+            document.getElementById('f_fifaTypeCustom').style.display = 'none';
             currentCardImageBase64 = "";
 
             closeModal('priceModal');
@@ -1604,8 +1690,29 @@
             document.getElementById('e_manufacturer').value = card.manufacturer;
             document.getElementById('e_year').value = card.year;
             document.getElementById('e_cardImgSymbol').value = card.cardImgSymbol;
-            document.getElementById('e_insert').value = card.insert;
+            document.getElementById('e_insert').value = card.insert || '';
             document.getElementById('e_price').value = card.price;
+
+            if (card.fifaType) {
+                document.getElementById('e_isFifa').checked = true;
+                document.getElementById('e_fifaTypeContainer').style.display = 'flex';
+                const opts = ['Hráč', 'Manažér', 'Lopta', 'Trofej', 'Štadión'];
+                if (opts.includes(card.fifaType)) {
+                    document.getElementById('e_fifaTypeSelect').value = card.fifaType;
+                    document.getElementById('e_fifaTypeCustom').style.display = 'none';
+                    document.getElementById('e_fifaTypeCustom').value = '';
+                } else {
+                    document.getElementById('e_fifaTypeSelect').value = 'custom';
+                    document.getElementById('e_fifaTypeCustom').style.display = 'block';
+                    document.getElementById('e_fifaTypeCustom').value = card.fifaType;
+                }
+            } else {
+                document.getElementById('e_isFifa').checked = false;
+                document.getElementById('e_fifaTypeContainer').style.display = 'none';
+                document.getElementById('e_fifaTypeSelect').value = 'Hráč';
+                document.getElementById('e_fifaTypeCustom').value = '';
+                document.getElementById('e_fifaTypeCustom').style.display = 'none';
+            }
 
             openModal('detailModal');
         }
@@ -1624,6 +1731,14 @@
                 card.cardImgSymbol = document.getElementById('e_cardImgSymbol').value;
                 card.insert = document.getElementById('e_insert').value;
                 card.price = parseFloat(document.getElementById('e_price').value) || 0;
+
+                if (document.getElementById('e_isFifa').checked) {
+                    const sel = document.getElementById('e_fifaTypeSelect').value;
+                    card.fifaType = (sel === 'custom') ? document.getElementById('e_fifaTypeCustom').value.trim() : sel;
+                    if (!card.fifaType) card.fifaType = "FIFA";
+                } else {
+                    delete card.fifaType;
+                }
 
                 await saveToLocalStorage();
                 closeModal('detailModal');
@@ -1663,7 +1778,6 @@
                 }
 
                 if(primaryKey === 'dateAdded') {
-                    // ID je generované cez Date.now().toString(), takže vyššie číslo = novšia karta
                     valA = parseFloat(a.id) || 0;
                     valB = parseFloat(b.id) || 0;
                 }
@@ -1707,12 +1821,14 @@
             const selectedManufs = getSelectedCheckboxes('f-manuf');
             const selectedSets = getSelectedCheckboxes('f-set');
             const selectedSeasons = getSelectedCheckboxes('f-season');
+            const selectedInserts = getSelectedCheckboxes('f-insert');
+            const selectedCardTypes = getSelectedCheckboxes('f-cardtype');
             const onlyFav = document.getElementById('chk-fav').checked;
-            const onlyInsert = document.getElementById('chk-has-insert').checked;
             const onlyCharInNum = document.getElementById('chk-num-char').checked;
 
             let filteredCards = cards.filter(card => {
                 const cardLeague = card.league || getLeagueForTeam(card.team, "");
+                const insValue = (card.insert && card.insert.trim() !== "") ? card.insert.trim() : "";
 
                 if(query) {
                     const matchText = `${card.firstName} ${card.lastName} ${card.team} ${cardLeague} ${card.set} ${card.manufacturer} ${card.cardImgSymbol}`.toLowerCase();
@@ -1728,7 +1844,25 @@
                 if(selectedSets.length > 0 && !selectedSets.includes(card.set)) return false;
                 if(selectedSeasons.length > 0 && !selectedSeasons.includes(card.year)) return false;
 
-                if(onlyInsert && (!card.insert || card.insert.trim() === "")) return false;
+                if(selectedInserts.length > 0) {
+                    let hasMatch = false;
+                    if(selectedInserts.includes("[Má insert]") && insValue !== "") hasMatch = true;
+                    if(selectedInserts.includes("[Nemá insert]") && insValue === "") hasMatch = true;
+                    if(insValue !== "" && selectedInserts.includes(insValue)) hasMatch = true;
+                    if(!hasMatch) return false;
+                }
+
+                if(selectedCardTypes.length > 0) {
+                    let hasMatch = false;
+                    const isFifa = !!card.fifaType;
+                    const typeLabel = card.fifaType ? card.fifaType : "";
+
+                    if(selectedCardTypes.includes("FIFA") && isFifa) hasMatch = true;
+                    if(selectedCardTypes.includes("Hráč") && !isFifa) hasMatch = true;
+                    if(isFifa && selectedCardTypes.includes(typeLabel)) hasMatch = true;
+                    if(!hasMatch) return false;
+                }
+
                 if(onlyCharInNum && /^\d+$/.test(card.cardImgSymbol || '')) return false;
 
                 return true;
@@ -1736,8 +1870,8 @@
 
             filteredCards = sortCards(filteredCards, sortKey, sortDirection);
             
-            // Filtre sa aktualizujú na základe vybraných nadradených filtrov, nie kompletného finálneho rezu
-            updateFilterOptions(selectedLeagues);
+            // Plne interaktívna kaskádová aktualizácia filtrov na základe vybraných hodnôt
+            updateFilterOptions(selectedLeagues, selectedClubs, selectedManufs, selectedSets, selectedSeasons, selectedInserts, selectedCardTypes, query, onlyFav, onlyCharInNum);
 
             let totalFilteredPrice = 0;
             let favFilteredCount = 0;
@@ -1807,6 +1941,18 @@
                 const favEl = `<span class="${favClass}" onclick="toggleFavorite('${card.id}', event)">♥</span>`;
 
                 let imgEl = `<img class="card-img-thumb" src="${card.image || ''}" alt="Card">`;
+                
+                let fifaBadgeHtml = "";
+                if (card.fifaType) {
+                    let icon = "🎮";
+                    if(card.fifaType === "Hráč") icon = "🏃";
+                    else if(card.fifaType === "Manažér") icon = "👔";
+                    else if(card.fifaType === "Lopta") icon = "⚽";
+                    else if(card.fifaType === "Trofej") icon = "🏆";
+                    else if(card.fifaType === "Štadión") icon = "🏟️";
+                    fifaBadgeHtml = `<div style="display:inline-flex; align-items:center; background:rgba(3,218,198,0.15); color:#03dac6; border:1px solid rgba(3,218,198,0.3); border-radius:4px; padding:2px 6px; font-size:0.75rem; font-weight:bold; margin-top:4px; width:fit-content;">${icon} ${card.fifaType}</div>`;
+                }
+
                 let infoEl = `
                     <div class="card-info-text">
                         <div><strong>${card.firstName} ${card.lastName}</strong></div>
@@ -1814,6 +1960,7 @@
                         <div style="font-size:0.85rem; color:#aaa;">${card.manufacturer} ${card.set}</div>
                         <div style="font-size:0.85rem; color:#aaa;">${card.year}</div>
                         <div style="font-size:0.85rem; color:#bbb;">${card.cardImgSymbol} ${card.insert ? '- <span style="font-weight: bold; font-style: italic; color: #fff;">' + card.insert + '</span>' : ''}</div>
+                        ${fifaBadgeHtml}
                         <div style="margin-top:5px; font-weight:bold; color:var(--accent-color);">${card.price.toFixed(2)} €</div>
                     </div>
                 `;
@@ -1876,39 +2023,84 @@
             container.appendChild(pagesDiv);
         }
 
-        function updateFilterOptions(selectedLeagues) {
-            const renderFilterGroup = (elementId, cardKey, isLeague = false, isClub = false) => {
+        // --- UNIFIKOVANÁ KASKÁDOVÁ DYNAMICKÁ AKTUALIZÁCIA MOŽNOSTÍ FILTROVANIA (Filtre miznú, ak pod nimi nič nie je) ---
+        function updateFilterOptions(selLeagues, selClubs, selManufs, selSets, selSeasons, selInserts, selCardTypes, query, onlyFav, onlyCharInNum) {
+            
+            // Pomocná funkcia, ktorá vráti zoznam kariet orezaný všetkými filtrami OKREM filtra, ktorý sa práve prepočítava
+            const getFilteredExcept = (excludeKey) => {
+                return cards.filter(card => {
+                    const cardLeague = card.league || getLeagueForTeam(card.team, "");
+                    const insValue = (card.insert && card.insert.trim() !== "") ? card.insert.trim() : "";
+
+                    if(query) {
+                        const m = `${card.firstName} ${card.lastName} ${card.team} ${cardLeague} ${card.set} ${card.manufacturer} ${card.cardImgSymbol}`.toLowerCase();
+                        if(!m.includes(query)) return false;
+                    }
+                    if(onlyFav && !card.favorite) return false;
+                    if(onlyCharInNum && /^\d+$/.test(card.cardImgSymbol || '')) return false;
+
+                    if(excludeKey !== 'league' && selLeagues.length > 0 && !selLeagues.includes(cardLeague)) return false;
+                    if(excludeKey !== 'club' && selClubs.length > 0 && !selClubs.includes(card.team)) return false;
+                    if(excludeKey !== 'manufacturer' && selManufs.length > 0 && !selManufs.includes(card.manufacturer)) return false;
+                    if(excludeKey !== 'set' && selSets.length > 0 && !selSets.includes(card.set)) return false;
+                    if(excludeKey !== 'season' && selSeasons.length > 0 && !selSeasons.includes(card.year)) return false;
+
+                    if(excludeKey !== 'insert' && selInserts.length > 0) {
+                        let hasMatch = false;
+                        if(selInserts.includes("[Má insert]") && insValue !== "") hasMatch = true;
+                        if(selInserts.includes("[Nemá insert]") && insValue === "") hasMatch = true;
+                        if(insValue !== "" && selInserts.includes(insValue)) hasMatch = true;
+                        if(!hasMatch) return false;
+                    }
+
+                    if(excludeKey !== 'cardtype' && selCardTypes.length > 0) {
+                        let hasMatch = false;
+                        const isFifa = !!card.fifaType;
+                        const typeLabel = card.fifaType ? card.fifaType : "";
+                        if(selCardTypes.includes("FIFA") && isFifa) hasMatch = true;
+                        if(selCardTypes.includes("Hráč") && !isFifa) hasMatch = true;
+                        if(isFifa && selCardTypes.includes(typeLabel)) hasMatch = true;
+                        if(!hasMatch) return false;
+                    }
+
+                    return true;
+                });
+            };
+
+            const populateGroup = (elementId, filterKey, checkedArray, extractValuesFn) => {
                 const container = document.getElementById(elementId);
-                const oldChecked = getSelectedCheckboxes(elementId);
+                if (!container) return;
                 container.innerHTML = '';
 
-                let uniqueValues = [];
-                if (isLeague) {
-                    const allLeagues = cards.map(c => c.league || getLeagueForTeam(c.team, "")).filter(Boolean);
-                    uniqueValues = [...new Set(allLeagues)];
-                } else {
-                    // Ak ide o kluby a máme vybrané nejaké ligy, ukážeme LEN kluby z danej ligy
-                    let baseCards = cards;
-                    if (isClub && selectedLeagues.length > 0) {
-                        baseCards = cards.filter(c => selectedLeagues.includes(c.league || getLeagueForTeam(c.team, "")));
-                    }
-                    const mapValues = baseCards.map(c => c[cardKey]).filter(Boolean);
-                    uniqueValues = [...new Set(mapValues)];
-                }
+                // Získame iba tie karty, ktoré prešli ostatnými aktívnymi filtrami
+                const availableCards = getFilteredExcept(filterKey);
+                
+                // Zistíme unikátne položky a počet kusov v aktuálnom stave aplikácie
+                const countsMap = {};
+                availableCards.forEach(c => {
+                    const vals = extractValuesFn(c);
+                    vals.forEach(v => {
+                        if(v !== undefined && v !== null) {
+                            countsMap[v] = (countsMap[v] || 0) + 1;
+                        }
+                    });
+                });
 
-                uniqueValues.sort((a, b) => a.localeCompare(b));
+                // Zabezpečíme, aby začiarknuté filtre nezmizli úplne z UI, aj keď majú dočasne 0 výsledkov
+                checkedArray.forEach(checkedVal => {
+                    if (!countsMap[checkedVal]) countsMap[checkedVal] = 0;
+                });
+
+                const uniqueValues = Object.keys(countsMap).sort((a, b) => a.localeCompare(b));
 
                 uniqueValues.forEach(val => {
-                    const count = cards.filter(c => {
-                        if (isLeague) {
-                            return (c.league || getLeagueForTeam(c.team, "")) === val;
-                        }
-                        return c[cardKey] === val;
-                    }).length;
+                    const count = countsMap[val];
+                    // Ak je počet 0 a položka nie je začiarknutá, v súlade s logikou "filtre miznú" ju nevygenerujeme
+                    if (count === 0 && !checkedArray.includes(val)) return;
 
                     const item = document.createElement('div');
                     item.className = 'filter-item';
-                    const isChecked = oldChecked.includes(val) ? 'checked' : '';
+                    const isChecked = checkedArray.includes(val) ? 'checked' : '';
                     
                     item.innerHTML = `
                         <input type="checkbox" value="${val}" ${isChecked} onchange="handleFilterChange()">
@@ -1918,11 +2110,44 @@
                 });
             };
 
-            renderFilterGroup('f-league', 'league', true, false);
-            renderFilterGroup('f-club', 'team', false, true);
-            renderFilterGroup('f-manuf', 'manufacturer', false, false);
-            renderFilterGroup('f-set', 'set', false, false);
-            renderFilterGroup('f-season', 'year', false, false);
+            // 1. Liga
+            populateGroup('f-league', 'league', selLeagues, c => [c.league || getLeagueForTeam(c.team, "")]);
+            
+            // 2. Klub
+            populateGroup('f-club', 'club', selClubs, c => [c.team]);
+            
+            // 3. Manufaktúra
+            populateGroup('f-manuf', 'manufacturer', selManufs, c => [c.manufacturer]);
+            
+            // 4. Set
+            populateGroup('f-set', 'set', selSets, c => [c.set]);
+            
+            // 5. Sezóna
+            populateGroup('f-season', 'season', selSeasons, c => [c.year]);
+
+            // 6. Plne interaktívny Multi-Filter pre Inserty (s fixnými voľbami + dynamickými položkami)
+            populateGroup('f-insert', 'insert', selInserts, c => {
+                const arr = [];
+                if (c.insert && c.insert.trim() !== "") {
+                    arr.push("[Má insert]");
+                    arr.push(c.insert.trim());
+                } else {
+                    arr.push("[Nemá insert]");
+                }
+                return arr;
+            });
+
+            // 7. Nový Multi-Filter pre Typ Karty (FIFA)
+            populateGroup('f-cardtype', 'cardtype', selCardTypes, c => {
+                const arr = [];
+                if (c.fifaType) {
+                    arr.push("FIFA");
+                    arr.push(c.fifaType);
+                } else {
+                    arr.push("Hráč");
+                }
+                return arr;
+            });
         }
 
         async function getSlotMetadata(slotIndex) {
