@@ -256,16 +256,46 @@
             background: var(--accent-color);
             color: #000;
         }
+
+        /* Štýly pre sumárnu sekciu */
+        .summary-box {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 0.95rem;
+        }
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dashed #333;
+            padding-bottom: 4px;
+        }
+        .summary-item .label {
+            color: #aaa;
+        }
+        .summary-item .value {
+            font-weight: bold;
+            color: #fff;
+        }
+        .summary-item.grand-total {
+            border-top: 1px solid var(--accent-color);
+            border-bottom: none;
+            padding-top: 8px;
+            margin-top: 4px;
+        }
+        .summary-item.grand-total .value {
+            color: var(--accent-color);
+        }
     </style>
 </head>
 <body>
 
     <header>
         <h1>ArciCards 🎴</h1>
-        <div style="display:flex; gap:5px; flex-wrap:wrap;">
-            <button onclick="openModal('settingsModal')">⚙️ Nastavenia</button>
-            <button class="btn-secondary" onclick="openModal('bulkAddModal')">++ Hromadné pridanie</button>
-            <button class="btn-primary" onclick="openModal('addCardModal')">+ Pridať kartu</button>
+        <div style="display:flex; gap:6px; align-items:center;">
+            <button onclick="openModal('settingsModal')" title="Nastavenia">⚙️</button>
+            <button class="btn-secondary" onclick="openModal('bulkAddModal')" title="Hromadné pridanie">++</button>
+            <button class="btn-primary" onclick="openModal('addCardModal')" title="Pridať kartu">+</button>
         </div>
     </header>
 
@@ -321,8 +351,12 @@
 
     <div class="cards-grid" id="cardsGrid"></div>
     
-    <!-- Stránkovacie prvky -->
     <div class="pagination-container" id="paginationContainer"></div>
+
+    <div class="section" id="statsSummarySection">
+        <h3 style="margin-top: 0; margin-bottom: 12px; border-bottom: 1px solid #444; padding-bottom: 6px; font-size: 1.1rem; color: var(--accent-color);">📊 Štatistický prehľad zbierky</h3>
+        <div class="summary-box" id="summaryBoxContent"></div>
+    </div>
 
     <div id="addCardModal" class="modal">
         <div class="modal-content">
@@ -357,7 +391,6 @@
         </div>
     </div>
 
-    <!-- HROMADNÉ PRIDANIE - ROBENÉ ODDELENE BOKOM -->
     <div id="bulkAddModal" class="modal">
         <div class="modal-content">
             <span class="close-modal" onclick="closeModal('bulkAddModal')">&times;</span>
@@ -379,7 +412,6 @@
         </div>
     </div>
 
-    <!-- HROMADNÉ KROKOVANIE - SCHVAĽOVACIE OKNO -->
     <div id="bulkStepModal" class="modal">
         <div class="modal-content">
             <span class="close-modal" onclick="closeModal('bulkStepModal')">&times;</span>
@@ -458,7 +490,6 @@
                 <input type="password" id="groqApiKey" placeholder="gsk_..." onchange="localStorage.setItem('groq_api_key', this.value)">
             </div>
 
-            <!-- NASTAVENIE POČTU KARIET NA STRÁNKU -->
             <div class="form-group">
                 <label>Počet kariet na stránku</label>
                 <select id="pageSizeSelect" onchange="handlePageSizeChange()">
@@ -473,7 +504,7 @@
             <h3>Režim zobrazenia kartičiek</h3>
             <div class="view-modes">
                 <button id="view-both" class="active" onclick="setViewMode('both')">Karta aj Popis</button>
-                <button id="view-card" onclick="wonclick=setViewMode('card')">Iba Karta</button>
+                <button id="view-card" onclick="setViewMode('card')">Iba Karta</button>
                 <button id="view-info" onclick="setViewMode('info')">Iba Popis</button>
             </div>
 
@@ -869,7 +900,7 @@
             }
         }
 
-        // --- HROMADNÁ ANALÝZA A ROZTRIEDENIE (BOKOM) ---
+        // --- HROMADNÁ ANALÝZA A ROZTRIEDENIE (VYLEPŠENÉ INTELLIGENTNÉ PÁROVANIE) ---
         async function analyzeBulkImages() {
             const apiKey = document.getElementById('groqApiKey').value;
             if(!apiKey) { alert('Zadaj prosím najprv Groq API Kľúč v nastaveniach.'); return; }
@@ -886,36 +917,50 @@
             document.getElementById('bulkStatusText').innerText = "Načítavam a optimalizujem súbory...";
 
             try {
-                // Načítanie fotiek do pamäte
+                // Načítanie a kompresia všetkých fotiek vzhľadov do pamäte
                 let cardImages = [];
                 for(let i=0; i < cardFiles.length; i++) {
                     const rB64 = await fileToBase64(cardFiles[i]);
                     const compB64 = await compressImage(rB64);
-                    cardImages.push({ id: `card_${i}_${Date.now()}`, base64: compB64 });
+                    cardImages.push({ id: i, base64: compB64 });
                 }
 
                 let detailsImages = [];
                 for(let j=0; j < detailsFiles.length; j++) {
                     const rB64 = await fileToBase64(detailsFiles[j]);
                     const compB64 = await compressImage(rB64, 1000, 1300, 0.6);
-                    detailsImages.push({ id: `detail_${j}_${Date.now()}`, base64: compB64 });
+                    detailsImages.push({ id: j, base64: compB64 });
                 }
 
-                document.getElementById('bulkStatusText').innerText = "AI teraz triedi a priraďuje správne dvojice k sebe...";
-
-                // Výber jedného z detailných popisov na spracovanie krok po kroku
-                // Krok 1: Inicializácia fronty pre postupné schvaľovanie
                 bulkQueue = [];
                 bulkCurrentIndex = 0;
 
-                // Pre zachovanie presne rovnakej robustnosti a promptu spracujeme každý popis jednotlivo
-                // a Llama ho spáruje s najlepším vizuálnym ekvivalentom z vybraných vzhľadov.
+                // Spracovanie každého popisu s inteligentným hľadaním vizuálneho ekvivalentu
                 for(let d = 0; d < detailsImages.length; d++) {
-                    document.getElementById('bulkStatusText').innerText = `Analyzujem a priraďujem popis ${d+1} z ${detailsImages.length}...`;
+                    document.getElementById('bulkStatusText').innerText = `AI analyzuje a priraďuje správnu kartu k popisu ${d+1} z ${detailsImages.length}...`;
                     
                     const cleanDetailsBase64 = detailsImages[d].base64.split(',')[1];
-                    const promptText = `Analyze this image of a sports trading card data sheet. Extract the following fields and return strictly as a JSON object, do not wrap in markdown blocks, do not explain. Fields:
-                    "firstName", "lastName", "team", "league" (find the league name of the club like Premier League, Bundesliga, La Liga etc.), "set", "manufacturer", "year", "cardImgSymbol" (this is the Card Number string, which can contain letters or symbols like '125', 'L22'), "insert" (like 'Captain', 'Base', etc., if none leave empty string).`;
+                    
+                    // Vytvorenie dynamického promptu, ktorý odovzdáva AI zoznam všetkých dostupných kariet
+                    let promptText = `Analyze the first image (which is a text data sheet of a sports trading card). Extract the fields:
+                    "firstName", "lastName", "team", "league" (find the league name like Premier League, Bundesliga, La Liga etc.), "set", "manufacturer", "year", "cardImgSymbol" (the card number like '125', 'L22'), "insert".
+                    
+                    CRITICAL MATCHING TASK: You are also provided with a set of subsequent card visual images (labeled in order as Index 0, Index 1, Index 2, etc.). Scan each card visual carefully to read the player's name. The name might be printed vertically on the margins, horizontally at the top, or at the bottom. Match the identity from the text sheet to the correct card image.
+                    Return the 0-based integer index of the matching card visual in the "matchedIndex" field. If no clear match can be identified, return -1.
+                    Return strictly as a JSON object with all fields and the "matchedIndex" property. Do not wrap in markdown blocks, do not explain.`;
+
+                    // Konštrukcia obsahu správy pre multi-image vstup do Llama modelu
+                    let messageContent = [];
+                    messageContent.push({ type: "text", text: promptText });
+                    
+                    // Prvý obrázok je vždy popisný detailný list
+                    messageContent.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${cleanDetailsBase64}` } });
+                    
+                    // Následne pribalíme všetky dostupné vizuály kariet
+                    cardImages.forEach((cImg, cIdx) => {
+                        messageContent.push({ type: "text", text: `--- CARD VISUAL OPTION INDEX ${cIdx} ---` });
+                        messageContent.push({ type: "image_url", image_url: { url: cImg.base64 } });
+                    });
 
                     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                         method: 'POST',
@@ -928,10 +973,7 @@
                             messages: [
                                 {
                                     role: "user",
-                                    content: [
-                                        { type: "text", text: promptText },
-                                        { type: "image_url", image_url: { url: `data:image/jpeg;base64,${cleanDetailsBase64}` } }
-                                    ]
+                                    content: messageContent
                                 }
                             ],
                             temperature: 0.1,
@@ -943,19 +985,25 @@
                     const resText = data.choices[0].message.content;
                     const parsed = JSON.parse(resText);
 
-                    // Automatické priradenie k správnej karte: zoberieme prvú dostupnú fotku, ak ich je viac, alebo podľa indexu
-                    // Ak má používateľ rovnaký počet fotiek kariet aj detailov, spáruje ich podľa poradia (1 s 1, 2 s 2...)
-                    const matchedCardImg = cardImages[d] ? cardImages[d].base64 : (cardImages[0] ? cardImages[0].base64 : "");
+                    // Rozhodovanie o priradení fotky: hľadá sa odpoveď z AI, ak zlyhá, použijú sa bezpečné zadné vrátka (poradie)
+                    let finalCardImg = "";
+                    const aiMatchedIdx = parsed.matchedIndex;
+                    
+                    if (aiMatchedIdx !== undefined && aiMatchedIdx >= 0 && aiMatchedIdx < cardImages.length) {
+                        finalCardImg = cardImages[aiMatchedIdx].base64;
+                    } else {
+                        // KRAJNÝ PRÍPAD (Zadné vrátka): Usporiadanie podľa toho, v akom poradí boli nahraté
+                        finalCardImg = cardImages[d] ? cardImages[d].base64 : (cardImages[0] ? cardImages[0].base64 : "");
+                    }
 
                     bulkQueue.push({
                         parsedData: parsed,
-                        image: matchedCardImg
+                        image: finalCardImg
                     });
                 }
 
                 closeModal('bulkAddModal');
                 
-                // Vyčistenie polí formulára hromadného nahrávania
                 document.getElementById('bulkInputCardImgs').value = "";
                 document.getElementById('bulkInputDetailsImgs').value = "";
                 document.getElementById('bulkStatusText').innerText = "";
@@ -1053,7 +1101,6 @@
 
             closeModal('bulkStepModal');
             
-            // Okamžite prejde na spracovanie ďalšej kartičky vo várke
             setTimeout(() => {
                 openBulkStep(bulkCurrentIndex + 1);
             }, 100);
@@ -1267,7 +1314,40 @@
             filteredCards = sortCards(filteredCards, sortKey);
             updateFilterOptions(filteredCards);
 
-            // --- STRÁNKOVANIE A LOGIKA ZOBRAZENIA "ZOBRAZIŤ ĎALŠIE" ---
+            // VÝPOČET DYNAMICKÉHO ŠTATISTICKÉHO SUMÁRU Z FILTROVANÝCH DÁT
+            let totalFilteredPrice = 0;
+            let favFilteredCount = 0;
+            let insertFilteredCount = 0;
+            let mostExpensiveCard = null;
+
+            filteredCards.forEach(card => {
+                totalFilteredPrice += card.price;
+                if (card.favorite) favFilteredCount++;
+                if (card.insert && card.insert.trim() !== "") insertFilteredCount++;
+                
+                if (!mostExpensiveCard || card.price > mostExpensiveCard.price) {
+                    mostExpensiveCard = card;
+                }
+            });
+
+            let avgFilteredPrice = filteredCards.length > 0 ? (totalFilteredPrice / filteredCards.length) : 0;
+            let mostExpensiveText = "N/A";
+            if (mostExpensiveCard) {
+                mostExpensiveText = `${mostExpensiveCard.firstName} ${mostExpensiveCard.lastName} (${mostExpensiveCard.price.toFixed(2)} €)`;
+            }
+
+            const summaryContainer = document.getElementById('summaryBoxContent');
+            summaryContainer.innerHTML = `
+                <div class="summary-item"><span class="label">Počet kariet (aktuálny filter):</span><span class="value">${filteredCards.length} ks</span></div>
+                <div class="summary-item"><span class="label">Celková cena (aktuálny filter):</span><span class="value">${totalFilteredPrice.toFixed(2)} €</span></div>
+                <div class="summary-item"><span class="label">Priemerná cena (aktuálny filter):</span><span class="value">${avgFilteredPrice.toFixed(2)} €</span></div>
+                <div class="summary-item"><span class="label">Najdrahšia karta (aktuálny filter):</span><span class="value">${mostExpensiveText}</span></div>
+                <div class="summary-item"><span class="label">Počet obľúbených (aktuálny filter):</span><span class="value">${favFilteredCount} ks</span></div>
+                <div class="summary-item"><span class="label">Počet kariet s insertom (aktuálny filter):</span><span class="value">${insertFilteredCount} ks</span></div>
+                <div class="summary-item grand-total"><span class="label">Celkový počet kariet v zbierke (komplet):</span><span class="value">${cards.length} ks</span></div>
+            `;
+
+            // --- STRÁNKOVANIE A LOGIKA ZOBRAZENIA ---
             const pageSizeValue = document.getElementById('pageSizeSelect').value;
             let paginatedCards = filteredCards;
             let totalPages = 1;
@@ -1329,7 +1409,6 @@
             renderPaginationControls(filteredCards.length, totalPages, pageSizeValue);
         }
 
-        // Vykreslenie ovládacích prvkov pre prepínanie stránok a "Zobraziť ďalšie"
         function renderPaginationControls(totalItems, totalPages, pageSizeValue) {
             const container = document.getElementById('paginationContainer');
             container.innerHTML = '';
@@ -1341,7 +1420,6 @@
             const pageSize = parseInt(pageSizeValue);
             const loadedSoFar = document.getElementById('cardsGrid').children.length;
 
-            // 1. Tlačidlo "Zobraziť ďalšie" (ak ešte máme skryté karty)
             if (loadedSoFar < totalItems) {
                 const btnMore = document.createElement('button');
                 btnMore.className = 'btn-primary';
@@ -1355,7 +1433,6 @@
                 container.appendChild(btnMore);
             }
 
-            // 2. Klasický prepínač stránok (1, 2, 3...)
             const pagesDiv = document.createElement('div');
             pagesDiv.className = 'pagination-pages';
 
@@ -1367,7 +1444,7 @@
                 }
                 pageBtn.onclick = () => {
                     currentPage = i;
-                    visibleLimit = 0; // zresetuje fixný limit a prepne čistú stranu
+                    visibleLimit = 0; 
                     renderApp();
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 };
