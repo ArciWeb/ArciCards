@@ -522,19 +522,19 @@
         </header>
 
         <div class="search-filter-row">
-            <input type="text" id="globalSearch" class="search-bar" placeholder="Hľadať meno, klub, manufaktúru..." oninput="resetPaginationAndRender()">
+            <input type="text" id="globalSearch" class="search-bar" placeholder="Hľadať meno, klub, set, manufaktúru..." oninput="resetPaginationAndRender()">
             <div class="sort-container">
-                <label for="sortSelect">Zoradiť: </label>
-                <select id="sortSelect" onchange="resetPaginationAndRender()" style="padding:10px; background:rgba(0,0,0,0.4); color:white; border-radius:6px 0 0 6px; border:1px solid var(--border-color); font-size:0.95rem; border-right:none;">
+                <label for="sortSelect">Zoradiť podľa: </label>
+                <select id="sortSelect" onchange="handleSortSelectChange()" style="padding:10px; background:rgba(0,0,0,0.4); color:white; border-radius:6px 0 0 6px; border:1px solid var(--border-color); font-size:0.95rem; border-right:none;">
                     <option value="firstName">Mena</option>
                     <option value="team">Klubu</option>
                     <option value="manufacturer">Manufaktúry</option>
                     <option value="set">Setu</option>
                     <option value="year">Sezóny</option>
                     <option value="price">Ceny</option>
-                    <option value="id">Dátumu pridania</option>
+                    <option value="dateAdded">Dátumu pridania</option>
                 </select>
-                <select id="sortDirectionSelect" onchange="resetPaginationAndRender()" style="padding:10px; background:rgba(0,0,0,0.4); color:white; border-radius:0 6px 6px 0; border:1px solid var(--border-color); font-size:0.95rem;">
+                <select id="sortDirectionSelect" onchange="handleSortDirectionChange()" style="padding:10px; background:rgba(0,0,0,0.4); color:white; border-radius:0 6px 6px 0; border:1px solid var(--border-color); font-size:0.95rem;">
                     <option value="asc">Vzostupne</option>
                     <option value="desc">Zostupne</option>
                 </select>
@@ -630,8 +630,12 @@
             <h2 style="color: var(--accent-color);">Hromadné pridanie kartičiek</h2>
             
             <div class="form-group">
-                <label>Vybrať fotky kartičiek (Vzhľady - neobmedzený počet súborov)</label>
+                <label>1. Vybrať fotky kartičiek (Vzhľady - viac súborov)</label>
                 <input type="file" id="bulkInputCardImgs" accept="image/*" multiple>
+            </div>
+            <div class="form-group">
+                <label>2. Vybrať fotky detailov na analýzu (AI popisy - viac súborov)</label>
+                <input type="file" id="bulkInputDetailsImgs" accept="image/*" multiple>
             </div>
 
             <button type="button" class="btn-primary" style="width: 100%; padding: 12px;" onclick="startBulkAnalysis()">1. Spustiť AI Match & Analýzu</button>
@@ -805,6 +809,8 @@
 
         // Globálne premenné pre hromadné spracovanie bokom
         let bulkCardImages = [];
+        let bulkDetailsImages = [];
+        let usedDetailsIndices = new Set();
         let bulkCurrentCardIndex = 0;
 
         function initDB() {
@@ -1007,6 +1013,17 @@
             localStorage.setItem('arcicards_fontsize', sizeName);
         }
 
+        // --- OBSLUHA UKLADANIA ZORADENIA ---
+        function handleSortSelectChange() {
+            localStorage.setItem('arcicards_sortkey', document.getElementById('sortSelect').value);
+            resetPaginationAndRender();
+        }
+
+        function handleSortDirectionChange() {
+            localStorage.setItem('arcicards_sortdirection', document.getElementById('sortDirectionSelect').value);
+            resetPaginationAndRender();
+        }
+
         // --- REŽIM UČELENÉHO ALBUMU (ÚPLNÁ FIXÁCIA, BEZ PREKRÝVANIA A S MINIATÚRAMI) ---
         function openAlbumView() {
             closeModal('settingsModal');
@@ -1057,6 +1074,13 @@
             } else {
                 document.getElementById('pageSizeSelect').value = "all";
             }
+
+            // Načítanie uloženého nastavenia zoradenia
+            const savedSortKey = localStorage.getItem('arcicards_sortkey') || 'firstName';
+            document.getElementById('sortSelect').value = savedSortKey;
+            
+            const savedSortDirection = localStorage.getItem('arcicards_sortdirection') || 'asc';
+            document.getElementById('sortDirectionSelect').value = savedSortDirection;
 
             // Načítanie uložených dizajnových konfigurácií
             const savedTheme = localStorage.getItem('arcicards_theme') || 'golden';
@@ -1130,7 +1154,7 @@
             if (hasActiveFilters()) {
                 window.history.pushState({ type: 'filter' }, '');
             }
-            renderApp();
+            resetPaginationAndRender();
         }
 
         async function saveToLocalStorage() {
@@ -1271,9 +1295,10 @@
             if(!apiKey) { alert('Zadaj prosím najprv Groq API Kľúč v nastaveniach.'); return; }
 
             const cardFiles = document.getElementById('bulkInputCardImgs').files;
+            const detailsFiles = document.getElementById('bulkInputDetailsImgs').files;
 
-            if(cardFiles.length === 0) {
-                alert('Musíš vybrať aspoň jednu fotku vzhľadu.');
+            if(cardFiles.length === 0 || detailsFiles.length === 0) {
+                alert('Musíš vybrať aspoň jednu fotku vzhľadu a aspoň jednu fotku detailov.');
                 return;
             }
 
@@ -1288,10 +1313,19 @@
                     bulkCardImages.push({ id: i, base64: compB64 });
                 }
 
+                bulkDetailsImages = [];
+                for(let j=0; j < detailsFiles.length; j++) {
+                    const rB64 = await fileToBase64(detailsFiles[j]);
+                    const compB64 = await compressImage(rB64, 1000, 1300, 0.6);
+                    bulkDetailsImages.push({ id: j, base64: compB64 });
+                }
+
+                usedDetailsIndices = new Set();
                 bulkCurrentCardIndex = 0;
 
                 closeModal('bulkAddModal');
                 document.getElementById('bulkInputCardImgs').value = "";
+                document.getElementById('bulkInputDetailsImgs').value = "";
                 document.getElementById('bulkStatusText').innerText = "";
 
                 processNextBulkCard();
@@ -1314,15 +1348,30 @@
             const currentCard = bulkCardImages[bulkCurrentCardIndex];
 
             document.getElementById('bulkAiLoading').style.display = 'block';
+            
+            let availableDetails = bulkDetailsImages.filter((_, idx) => !usedDetailsIndices.has(idx));
+
+            if (availableDetails.length === 0) {
+                availableDetails = bulkDetailsImages;
+            }
 
             try {
-                let promptText = `Analyze the provided visual image of a sports trading card. Scan it carefully to read the player's identity and card specifications.
-                Extract the fields: "firstName", "lastName", "team", "league" (find the league name like Premier League, Bundesliga, La Liga etc.), "set", "manufacturer", "year", "cardImgSymbol" (the card number like '125', 'L22'), "insert".
-                Return strictly as a JSON object with all fields. Do not wrap in markdown blocks, do not explain.`;
+                let promptText = `Analyze the first image (which is a visual of a sports trading card). Scan it carefully to read the player's name (printed vertically, horizontally, top or bottom).
+                
+                CRITICAL MATCHING TASK: You are also provided with a subsequent set of text data sheet images (labeled in order as Index 0, Index 1, Index 2, etc.). Match the identity from the card visual to the correct text data sheet.
+                From that matched text data sheet, extract the fields: "firstName", "lastName", "team", "league" (find the league name like Premier League, Bundesliga, La Liga etc.), "set", "manufacturer", "year", "cardImgSymbol" (the card number like '125', 'L22'), "insert".
+                
+                Return the 0-based integer index of the matching text data sheet visual in the "matchedIndex" field. If no clear match can be identified, return -1.
+                Return strictly as a JSON object with all fields and the "matchedIndex" property. Do not wrap in markdown blocks, do not explain.`;
 
                 let messageContent = [];
                 messageContent.push({ type: "text", text: promptText });
                 messageContent.push({ type: "image_url", image_url: { url: currentCard.base64 } });
+
+                availableDetails.forEach((dImg, dIdx) => {
+                    messageContent.push({ type: "text", text: `--- TEXT DATA SHEET OPTION INDEX ${dIdx} ---` });
+                    messageContent.push({ type: "image_url", image_url: { url: dImg.base64 } });
+                });
 
                 const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                     method: 'POST',
@@ -1351,6 +1400,21 @@
 
                 const resText = data.choices[0].message.content;
                 const parsed = JSON.parse(resText);
+
+                let chosenDetailIndex = -1;
+                const aiMatchedIdx = parsed.matchedIndex;
+
+                if (aiMatchedIdx !== undefined && aiMatchedIdx >= 0 && aiMatchedIdx < availableDetails.length) {
+                    const matchedDetailObj = availableDetails[aiMatchedIdx];
+                    chosenDetailIndex = bulkDetailsImages.findIndex(d => d.id === matchedDetailObj.id);
+                } else {
+                    const firstAvailable = availableDetails[0];
+                    if (firstAvailable) {
+                        chosenDetailIndex = bulkDetailsImages.findIndex(d => d.id === firstAvailable.id);
+                    }
+                }
+
+                currentCard.tempDetailIndex = chosenDetailIndex;
 
                 document.getElementById('bulkStepTitle').innerText = `Spracovanie várky (Krok ${bulkCurrentCardIndex + 1} z ${bulkCardImages.length})`;
                 document.getElementById('bulkStepCardPreview').src = currentCard.base64;
@@ -1430,6 +1494,10 @@
 
             cards.push(newCard);
             await saveToLocalStorage();
+
+            if (currentCard.tempDetailIndex !== undefined && currentCard.tempDetailIndex >= 0) {
+                usedDetailsIndices.add(currentCard.tempDetailIndex);
+            }
 
             closeModal('bulkStepModal');
             renderApp();
@@ -1585,8 +1653,9 @@
                     valA = a.price;
                     valB = b.price;
                 }
-                
-                if(primaryKey === 'id') {
+
+                if(primaryKey === 'dateAdded') {
+                    // ID je generované cez Date.now().toString(), takže vyššie číslo = novšia karta
                     valA = parseFloat(a.id) || 0;
                     valB = parseFloat(b.id) || 0;
                 }
@@ -1658,7 +1727,9 @@
             });
 
             filteredCards = sortCards(filteredCards, sortKey, sortDirection);
-            updateFilterOptions(filteredCards);
+            
+            // Filtre sa aktualizujú na základe vybraných nadradených filtrov, nie kompletného finálneho rezu
+            updateFilterOptions(selectedLeagues);
 
             let totalFilteredPrice = 0;
             let favFilteredCount = 0;
@@ -1797,9 +1868,7 @@
             container.appendChild(pagesDiv);
         }
 
-        function updateFilterOptions(currentFiltered) {
-            const selectedLeagues = getSelectedCheckboxes('f-league');
-
+        function updateFilterOptions(selectedLeagues) {
             const renderFilterGroup = (elementId, cardKey, isLeague = false, isClub = false) => {
                 const container = document.getElementById(elementId);
                 const oldChecked = getSelectedCheckboxes(elementId);
@@ -1809,29 +1878,25 @@
                 if (isLeague) {
                     const allLeagues = cards.map(c => c.league || getLeagueForTeam(c.team, "")).filter(Boolean);
                     uniqueValues = [...new Set(allLeagues)];
-                } else if (isClub) {
-                    let clubCards = cards;
-                    if (selectedLeagues.length > 0) {
-                        clubCards = cards.filter(c => selectedLeagues.includes(c.league || getLeagueForTeam(c.team, "")));
-                    }
-                    const allClubs = clubCards.map(c => c.team).filter(Boolean);
-                    uniqueValues = [...new Set(allClubs)];
                 } else {
-                    const mapValues = cards.map(c => c[cardKey]).filter(Boolean);
+                    // Ak ide o kluby a máme vybrané nejaké ligy, ukážeme LEN kluby z danej ligy
+                    let baseCards = cards;
+                    if (isClub && selectedLeagues.length > 0) {
+                        baseCards = cards.filter(c => selectedLeagues.includes(c.league || getLeagueForTeam(c.team, "")));
+                    }
+                    const mapValues = baseCards.map(c => c[cardKey]).filter(Boolean);
                     uniqueValues = [...new Set(mapValues)];
                 }
 
                 uniqueValues.sort((a, b) => a.localeCompare(b));
 
                 uniqueValues.forEach(val => {
-                    const count = currentFiltered.filter(c => {
+                    const count = cards.filter(c => {
                         if (isLeague) {
                             return (c.league || getLeagueForTeam(c.team, "")) === val;
                         }
                         return c[cardKey] === val;
                     }).length;
-                    
-                    if (count === 0 && !oldChecked.includes(val) && !isLeague) return;
 
                     const item = document.createElement('div');
                     item.className = 'filter-item';
@@ -1847,9 +1912,9 @@
 
             renderFilterGroup('f-league', 'league', true, false);
             renderFilterGroup('f-club', 'team', false, true);
-            renderFilterGroup('f-manuf', 'manufacturer');
-            renderFilterGroup('f-set', 'set');
-            renderFilterGroup('f-season', 'year');
+            renderFilterGroup('f-manuf', 'manufacturer', false, false);
+            renderFilterGroup('f-set', 'set', false, false);
+            renderFilterGroup('f-season', 'year', false, false);
         }
 
         async function getSlotMetadata(slotIndex) {
@@ -1930,7 +1995,7 @@
                 if(confirm(`Naozaj vymazať obsah Slotu ${slotIndex}?`)) {
                     await deleteDBData('slots_data', slotKey);
                     await deleteDBData('app_data', `arcicards_slot_meta_${slotIndex}`);
-                    alert(`Slot ${slotIndex} bol vymazaný and zresetovaný.`);
+                    alert(`Slot ${slotIndex} bol vymazaný a zresetovaný.`);
                     await buildSlotsUI();
                 }
             }
