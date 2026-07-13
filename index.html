@@ -970,12 +970,13 @@
                 <label>Značka / Typ FIFA karty</label>
                 <select id="f_fifaTypeSelect" style="margin-bottom: 6px;" onchange="if(this.value==='custom'){document.getElementById('f_fifaTypeCustom').style.display='block'}else{document.getElementById('f_fifaTypeCustom').style.display='none'}">
                     <option value="Hráč">Hráč</option>
-                    <option value="Woman">Woman</option>
+                    <option value="Ženy">Ženy</option>
                     <option value="Manažér">Manažér</option>
                     <option value="Logo">Logo</option>
                     <option value="Lopta">Lopta</option>
                     <option value="Trofej">Trofej</option>
                     <option value="Štadión">Štadión</option>
+                    <option value="World Cup">World Cup</option>
                     <option value="Legenda">Legenda</option>
                     <option value="Ultra Legenda">Ultra Legenda</option>
                     <option value="Kvalitný hráč">Kvalitný hráč</option>
@@ -1040,12 +1041,13 @@
                 <label>Značka / Typ FIFA karty</label>
                 <select id="bs_fifaTypeSelect" style="margin-bottom: 6px;" onchange="if(this.value==='custom'){document.getElementById('bs_fifaTypeCustom').style.display='block'}else{document.getElementById('bs_fifaTypeCustom').style.display='none'}">
                     <option value="Hráč">Hráč</option>
-                    <option value="Woman">Woman</option>
+                    <option value="Ženy">Ženy</option>
                     <option value="Manažér">Manažér</option>
                     <option value="Logo">Logo</option>
                     <option value="Lopta">Lopta</option>
                     <option value="Trofej">Trofej</option>
                     <option value="Štadión">Štadión</option>
+                    <option value="World Cup">World Cup</option>
                     <option value="Legenda">Legenda</option>
                     <option value="Ultra Legenda">Ultra Legenda</option>
                     <option value="Kvalitný hráč">Kvalitný hráč</option>
@@ -1125,13 +1127,13 @@
                 <label>Značka / Typ FIFA karty</label>
                 <select id="e_fifaTypeSelect" style="margin-bottom: 6px;" onchange="if(this.value==='custom'){document.getElementById('e_fifaTypeCustom').style.display='block'}else{document.getElementById('f_fifaTypeCustom').style.display='none'}">
                     <option value="Hráč">Hráč</option>
-                    <option value="Woman">Woman</option>
+                    <option value="Ženy">Ženy</option>
                     <option value="Manažér">Manažér</option>
                     <option value="Logo">Logo</option>
                     <option value="Lopta">Lopta</option>
                     <option value="Trofej">Trofej</option>
                     <option value="Štadión">Štadión</option>
- 
+                    <option value="World Cup">World Cup</option>
                     <option value="Legenda">Legenda</option>
                     <option value="Ultra Legenda">Ultra Legenda</option>
                     <option value="Kvalitný hráč">Kvalitný hráč</option>
@@ -2165,7 +2167,7 @@
                 console.error(err);
                 alert('Chyba pri analýze cez Groq API. Skontrolujte konzolu and API kľúč.');
             } finally {
-                document.getElementById('aiLoading').style.none = 'none';
+                document.getElementById('aiLoading').style.display = 'none';
             }
         }
 
@@ -2639,7 +2641,7 @@
             if (card.fifaType) {
                 document.getElementById('e_isFifa').checked = true;
                 document.getElementById('e_fifaTypeContainer').style.display = 'flex';
-                const opts = ['Hráč', 'Woman', 'Manažér', 'Logo', 'Lopta', 'Trofej', 'Štadión', 'Legenda', 'Ultra Legenda', 'Kvalitný hráč', 'Talent'];
+                const opts = ['Hráč', 'Ženy', 'Manažér', 'Logo', 'Lopta', 'Trofej', 'Štadión', 'World Cup', 'Legenda', 'Ultra Legenda', 'Kvalitný hráč', 'Talent'];
                 if (opts.includes(card.fifaType)) {
                     document.getElementById('e_fifaTypeSelect').value = card.fifaType;
                     document.getElementById('e_fifaTypeCustom').style.display = 'none';
@@ -2839,7 +2841,7 @@
                 const insValue = (card.insert && card.insert.trim() !== "") ? card.insert.trim() : "";
                 const typeLabel = card.fifaType ? card.fifaType : "";
 
-                if (!showWomen && typeLabel === "Woman") return false;
+                if (!showWomen && typeLabel === "Ženy") return false;
 
                 if(query) {
                     const matchText = `${card.firstName} ${card.lastName} ${card.team} ${cardLeague} ${card.set} ${card.manufacturer} ${card.cardImgSymbol}`.toLowerCase();
@@ -2880,7 +2882,7 @@
                     
                     const isHracType = ["Bez označenia", "Legenda", "Ultra Legenda", "Kvalitný hráč", "Talent"].includes(typeLabel);
                     const isTrenerType = ["Manažér"].includes(typeLabel);
-                    const isFifaType = ["Logo", "Lopta", "Trofej", "Štadión", "Woman"].includes(typeLabel) || (!!card.fifaType && !isHracType && !isTrenerType);
+                    const isFifaType = ["Logo", "Lopta", "Trofej", "Štadión", "Ženy", "World Cup"].includes(typeLabel) || (!!card.fifaType && !isHracType && !isTrenerType);
 
                     const belongsToHrac = !card.fifaType || isHracType;
                     const belongsToTrener = isTrenerType;
@@ -3025,12 +3027,13 @@
                 if (card.fifaType) {
                     let icon = "🎮";
                     if(card.fifaType === "Hráč") icon = "🏃";
-                    else if(card.fifaType === "Woman") icon = "👩‍🎤";
+                    else if(card.fifaType === "Ženy") icon = "👩‍🎤";
                     else if(card.fifaType === "Manažér") icon = "👔";
                     else if(card.fifaType === "Logo") icon = "🛡️";
                     else if(card.fifaType === "Lopta") icon = "⚽";
                     else if(card.fifaType === "Trofej") icon = "🏆";
                     else if(card.fifaType === "Štadión") icon = "🏟️";
+                    else if(card.fifaType === "World Cup") icon = "🌍";
                     else if(card.fifaType === "Legenda") icon = "🎖️";
                     else if(card.fifaType === "Ultra Legenda") icon = "👑 ";
                     else if(card.fifaType === "Kvalitný hráč") icon = "🏷️ ";
@@ -3133,7 +3136,7 @@
                     const insValue = (card.insert && card.insert.trim() !== "") ? card.insert.trim() : "";
                     const typeLabel = card.fifaType ? card.fifaType : "";
 
-                    if (!showWomen && typeLabel === "Woman") return false;
+                    if (!showWomen && typeLabel === "Ženy") return false;
 
                     if(query) {
                         const m = `${card.firstName} ${card.lastName} ${card.team} ${cardLeague} ${card.set} ${card.manufacturer} ${card.cardImgSymbol}`.toLowerCase();
@@ -3148,7 +3151,7 @@
                     if(excludeKey !== 'collection' && selCollections.length > 0) {
                         if(!card.collections || !card.collections.some(c => selCollections.includes(c))) return false;
                     }
-                    if(excludeKey !== 'sets-combo' && selSetsCombo.length > 0) {
+                    if(excludeKey !== 'slots-combo' && selSetsCombo.length > 0) {
                         const comboKey = `${card.manufacturer || 'Neznáma manufaktúra'} - ${card.set || 'Neznámy set'} [${card.year || 'Neznáma sezóna'}]`;
                         if(!selSetsCombo.includes(comboKey)) return false;
                     }
@@ -3171,7 +3174,7 @@
                         
                         const isHracType = ["Bez označenia", "Legenda", "Ultra Legenda", "Kvalitný hráč", "Talent"].includes(typeLabel);
                         const isTrenerType = ["Manažér"].includes(typeLabel);
-                        const isFifaType = ["Logo", "Lopta", "Trofej", "Štadión", "Woman"].includes(typeLabel) || (!!c.fifaType && !isHracType && !isTrenerType);
+                        const isFifaType = ["Logo", "Lopta", "Trofej", "Štadión", "Ženy", "World Cup"].includes(typeLabel) || (!!card.fifaType && !isHracType && !isTrenerType);
 
                         const belongsToHrac = !card.fifaType || isHracType;
                         const belongsToTrener = isTrenerType;
@@ -3221,7 +3224,7 @@
 
                     const hracSubtypes = ["Bez označenia", "Legenda", "Ultra Legenda", "Kvalitný hráč", "Talent"];
                     const trenerSubtypes = ["Manažér"];
-                    const fifaSubtypes = ["Logo", "Lopta", "Trofej", "Štadión", "Woman"];
+                    const fifaSubtypes = ["Logo", "Lopta", "Trofej", "Štadión", "Ženy", "World Cup"];
 
                     topItems.forEach(val => {
                         const count = countsMap[val] || 0;
@@ -3360,7 +3363,7 @@
                 
                 const isHracType = ["Bez označenia", "Legenda", "Ultra Legenda", "Kvalitný hráč", "Talent"].includes(typeLabel);
                 const isTrenerType = ["Manažér"].includes(typeLabel);
-                const isFifaType = ["Logo", "Lopta", "Trofej", "Štadión", "Woman"].includes(typeLabel) || (!!c.fifaType && !isHracType && !isTrenerType);
+                const isFifaType = ["Logo", "Lopta", "Trofej", "Štadión", "Ženy", "World Cup"].includes(typeLabel) || (!!c.fifaType && !isHracType && !isTrenerType);
 
                 if (isTrenerType) {
                     arr.push("Tréner");
