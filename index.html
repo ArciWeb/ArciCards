@@ -82,10 +82,10 @@
             background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,234,67,0.18) 0%, rgba(0,0,0,0) 60%);
         }
         body.theme-premium .bg-glow-layer {
-            background: radial-gradient(circle at var(--x, 50%)Var(--y, 50%), rgba(255,255,255,0.15) 0%, rgba(0,0,0,0) 55%);
+            background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,255,255,0.15) 0%, rgba(0,0,0,0) 55%);
         }
         body.theme-bluemoon .bg-glow-layer {
-            background: radial-gradient(circle at var(--x, 50%)Var(--y, 50%), rgba(142,68,227,0.22) 0%, rgba(0,0,0,0) 60%);
+            background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(142,68,227,0.22) 0%, rgba(0,0,0,0) 60%);
         }
 
         @keyframes floatingShine {
@@ -266,7 +266,6 @@
             padding: 12px;
             display: flex;
             position: relative;
-            cursor: pointer;
             flex-direction: row;
             box-shadow: var(--shadow-style);
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
@@ -312,6 +311,7 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.3);
             position: relative;
             z-index: 5;
+            cursor: pointer;
         }
 
         .only-cards-mode .card-img-thumb {
@@ -331,13 +331,13 @@
             z-index: 5;
         }
 
-        /* Pridané interaktívne štýly pre špecifické klikateľné polia filtrovaného albumu */
-        .album-link-field {
+        /* Interaktívne textové prvky s vizuálnou odozvou na klik */
+        .clickable-attr {
             cursor: pointer;
-            transition: color 0.2s ease;
+            transition: color 0.15s ease;
         }
-        .album-link-field:hover {
-            color: var(--accent-color) !important;
+        .clickable-attr:hover {
+            color: var(--accent-color);
             text-decoration: underline;
         }
 
@@ -1253,47 +1253,21 @@
             resetPaginationAndRender();
         }
 
-        // --- REŽIM UČELENÉHO ALBUMU (ÚPLNÁ FIXÁFIA, BEZ PREKRÝVANIA A S MINIATÚRAMI) ---
-        // Upravené pre podporu filtrovaného zobrazenia podľa kliknutých polí
-        function openAlbumView(filterField = null, filterValue = null) {
+        // --- REŽIM UČELENÉHO ALBUMU (ÚPLNÁ FIXÁFIA, S MINIATÚRAMI A INTERAKTÍVNYM FILTROM) ---
+        function openAlbumView(filteredCardsSubset = null, filterTitle = "Kompletný Digitálny Album") {
             closeModal('settingsModal');
             const overlay = document.getElementById('albumViewOverlay');
             const grid = document.getElementById('albumGridContent');
-            const title = document.getElementById('albumViewTitle');
+            const titleEl = document.getElementById('albumViewTitle');
             grid.innerHTML = '';
 
-            let cardsToDisplay = cards;
+            titleEl.innerText = `📖 ${filterTitle}`;
+            const cardsToRender = filteredCardsSubset || cards;
 
-            if (filterField && filterValue !== null && filterValue !== undefined) {
-                const cleanVal = filterValue.toString().trim().toLowerCase();
-                if (filterField === 'name') {
-                    cardsToDisplay = cards.filter(c => `${c.firstName} ${c.lastName}`.trim().toLowerCase() === cleanVal);
-                    title.innerText = `📖 Album: ${filterValue}`;
-                } else if (filterField === 'team') {
-                    cardsToDisplay = cards.filter(c => (c.team || '').trim().toLowerCase() === cleanVal);
-                    title.innerText = `🛡️ Album klubu: ${filterValue}`;
-                } else if (filterField === 'set_manuf') {
-                    // Filter pre manufaktúru alebo set
-                    cardsToDisplay = cards.filter(c => 
-                        (c.set || '').trim().toLowerCase() === cleanVal || 
-                        (c.manufacturer || '').trim().toLowerCase() === cleanVal
-                    );
-                    title.innerText = `📦 Album: ${filterValue}`;
-                } else if (filterField === 'insert') {
-                    cardsToDisplay = cards.filter(c => (c.insert || '').trim().toLowerCase() === cleanVal);
-                    title.innerText = `✨ Album insertu: ${filterValue}`;
-                } else if (filterField === 'fifa') {
-                    cardsToDisplay = cards.filter(c => (c.fifaType || '').trim().toLowerCase() === cleanVal);
-                    title.innerText = `🎮 Album FIFA: ${filterValue}`;
-                }
+            if(cardsToRender.length === 0) {
+                grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 40px; color:#aaa;">Žiadne karty pre zobrazenie v albume.</div>';
             } else {
-                title.innerText = "📖 Kompletný Digitálny Album";
-            }
-
-            if(cardsToDisplay.length === 0) {
-                grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 40px; color:#aaa;">Žiadne zodpovedajúce karty v databáze pre tento album.</div>';
-            } else {
-                cardsToDisplay.forEach(card => {
+                cardsToRender.forEach(card => {
                     const item = document.createElement('div');
                     item.className = 'album-item';
                     item.innerHTML = `<img src="${card.image || ''}" alt="Card Visual" onerror="this.style.display='none'">`;
@@ -1312,6 +1286,32 @@
         function closeAlbumView() {
             document.getElementById('albumViewOverlay').style.display = 'none';
             document.body.style.overflow = ''; 
+        }
+
+        // Špecifické funkcie pre rýchle vyfiltrovanie a otvorenie albumu podľa atribútov
+        function filterAttributeAndOpenAlbum(type, value) {
+            let filtered = [];
+            let title = "";
+            const cleanVal = value ? value.trim().toLowerCase() : "";
+
+            if (type === 'name') {
+                filtered = cards.filter(c => `${c.firstName} ${c.lastName}`.trim().toLowerCase() === cleanVal);
+                title = `Album: ${value}`;
+            } else if (type === 'team') {
+                filtered = cards.filter(c => (c.team || '').trim().toLowerCase() === cleanVal);
+                title = `Klub: ${value}`;
+            } else if (type === 'set') {
+                filtered = cards.filter(c => (c.set || '').trim().toLowerCase() === cleanVal);
+                title = `Set: ${value}`;
+            } else if (type === 'insert') {
+                filtered = cards.filter(c => (c.insert || '').trim().toLowerCase() === cleanVal);
+                title = `Insert: ${value}`;
+            } else if (type === 'fifa') {
+                filtered = cards.filter(c => (c.fifaType || '').trim().toLowerCase() === cleanVal);
+                title = `FIFA: ${value}`;
+            }
+
+            openAlbumView(filtered, title);
         }
 
         window.addEventListener('DOMContentLoaded', async () => {
@@ -1886,7 +1886,7 @@
                 favorite: false,
                 fifaType: fifaTag,
                 collections: [],
-                dateAdded: getTodayDateString() // Automatický dátum pre hromadné nahrávanie
+                dateAdded: getTodayDateString() 
             };
 
             cards.push(newCard);
@@ -1965,7 +1965,7 @@
                 favorite: false,
                 fifaType: fifaTag,
                 collections: [],
-                dateAdded: getTodayDateString() // Automatický dnešný dátum pre novú kartu
+                dateAdded: getTodayDateString() 
             };
 
             cards.push(newCard);
@@ -2011,7 +2011,7 @@
             document.getElementById('e_insert').value = card.insert || '';
             document.getElementById('e_price').value = card.price;
             
-            // Načítanie alebo predvyplnenie dátumu (ak predtým neexistoval)
+            // Načítanie dátumu pridania (plne dostupné iba tu v editácii)
             document.getElementById('e_dateAdded').value = card.dateAdded || "";
             document.getElementById('e_newCollectionName').value = "";
 
@@ -2112,7 +2112,7 @@
                 card.insert = document.getElementById('e_insert').value;
                 card.price = parseFloat(document.getElementById('e_price').value) || 0;
                 
-                // Uloženie manuálne zadaného/upraveného dátumu
+                // Uloženie zmeneného/upraveného dátumu
                 card.dateAdded = document.getElementById('e_dateAdded').value;
 
                 if (document.getElementById('e_isFifa').checked) {
@@ -2161,7 +2161,6 @@
                 }
 
                 if(primaryKey === 'dateAdded') {
-                    // Zoradenie primárne podľa textového dátumu, ak chýba, použije sa ID ako sekundárny časový údaj
                     valA = a.dateAdded || '';
                     valB = b.dateAdded || '';
                     if (valA === valB) {
@@ -2215,7 +2214,6 @@
             const onlyFav = document.getElementById('chk-fav').checked;
             const onlyCharInNum = document.getElementById('chk-num-char').checked;
 
-            // PREMENNÉ PRE NOVÝ FILTER ROZMEDZIA CIEN
             const priceFromValue = document.getElementById('priceFrom').value;
             const priceToValue = document.getElementById('priceTo').value;
             const priceFrom = priceFromValue !== "" ? parseFloat(priceFromValue) : null;
@@ -2232,11 +2230,9 @@
 
                 if(onlyFav && !card.favorite) return false;
 
-                // VALIDÁCIA ROZMEDZIA CIEN (OD - DO)
                 if(priceFrom !== null && card.price < priceFrom) return false;
                 if(priceTo !== null && card.price > priceTo) return false;
 
-                // FILTER PRE ZBIERKY
                 if(selectedCollections.length > 0) {
                     if(!card.collections || !card.collections.some(c => selectedCollections.includes(c))) return false;
                 }
@@ -2273,8 +2269,6 @@
             });
 
             filteredCards = sortCards(filteredCards, sortKey, sortDirection);
-            
-            // Plne interaktívna kaskádová aktualizácia filtrov na základe vybraných hodnôt
             updateFilterOptions(selectedCollections, selectedLeagues, selectedClubs, selectedManufs, selectedSets, selectedSeasons, selectedInserts, selectedCardTypes, query, onlyFav, onlyCharInNum, priceFrom, priceTo);
 
             let totalFilteredPrice = 0;
@@ -2341,25 +2335,27 @@
                 box.className = 'card-box';
                 box.setAttribute('data-id', card.id);
 
-                // Integrácia správania long-press a hromadného výberu
+                // Touch & Click eventy pre bulk označovanie a dlhé podržanie na celej ploche karty
                 box.onmousedown = () => handleCardTouchStart(card.id);
                 box.onmouseup = () => handleCardTouchEnd();
                 box.onmouseleave = () => handleCardTouchEnd();
                 box.ontouchstart = () => handleCardTouchStart(card.id);
                 box.ontouchend = () => handleCardTouchEnd();
 
+                // Správanie pri priamom kliknutí
                 box.onclick = (e) => {
                     if (isBulkSelectionMode) {
                         e.preventDefault();
                         e.stopPropagation();
                         handleCardClickInSelection(card.id);
                     } else {
-                        // Ak sa klikne na samotný box karty (napr. Fotku alebo neutrálne miesto pozadia), otvorí sa detail ako vždy
-                        viewDetails(card.id);
+                        // Ak sa nekliklo na žiadny špecifický interaktívny atribút, otvorí sa štandardný detail karty
+                        if (!e.target.classList.contains('clickable-attr') && !e.target.classList.contains('fav-icon')) {
+                            viewDetails(card.id);
+                        }
                     }
                 };
 
-                // Ak sme v režime hromadného označovania a karta je vybraná, aplikujeme CSS classu
                 if (isBulkSelectionMode && selectedCardsIds.has(card.id)) {
                     box.classList.add('bulk-selected');
                 }
@@ -2367,7 +2363,8 @@
                 const favClass = card.favorite ? 'fav-icon active' : 'fav-icon';
                 const favEl = `<span class="${favClass}" onclick="toggleFavorite('${card.id}', event)">♥</span>`;
 
-                let imgEl = `<img class="card-img-thumb" src="${card.image || ''}" alt="Card">`;
+                // Obrázok karty vyvolá klasické okno úprav
+                let imgEl = `<img class="card-img-thumb" src="${card.image || ''}" alt="Card" onclick="event.stopPropagation(); viewDetails('${card.id}');">`;
                 
                 let fifaBadgeHtml = "";
                 if (card.fifaType) {
@@ -2382,28 +2379,26 @@
                     else if(card.fifaType === "Kvalitný hráč") icon = "🏷️ ";
                     else if(card.fifaType === "Talent") icon = "🔖 ";
                    
-                   
-                    fifaBadgeHtml = `<div class="album-link-field" onclick="event.stopPropagation(); openAlbumView('fifa', '${card.fifaType}');" style="display:inline-flex; align-items:center; background:rgba(3,218,198,0.15); color:#03dac6; border:1px solid rgba(3,218,198,0.3); border-radius:4px; padding:2px 6px; font-size:0.75rem; font-weight:bold; margin-top:4px; width:fit-content;">${icon} ${card.fifaType}</div>`;
+                    // FIFA označenie je po novom klikateľné pre filtrovaný album
+                    fifaBadgeHtml = `<div class="clickable-attr" onclick="event.stopPropagation(); filterAttributeAndOpenAlbum('fifa', '${card.fifaType}');" style="display:inline-flex; align-items:center; background:rgba(3,218,198,0.15); color:#03dac6; border:1px solid rgba(3,218,198,0.3); border-radius:4px; padding:2px 6px; font-size:0.75rem; font-weight:bold; margin-top:4px; width:fit-content;">${icon} ${card.fifaType}</div>`;
                 }
 
-                // Dátum bol odtiaľto z hlavného okna pri mene hráča odstránený a presunutý iba do detailu (Editácie).
+                // Dátum bol odtiaľto kompletne vymazaný (nenachádza sa už v hlavnom okne pri mene)
 
-                // UPRAVENÉ ROZLOŽENIE: Kliknutia na špecifické textové polia otvárajú filtrovaný album (zamedzené bublaniu udalostí event.stopPropagation())
+                // VŠETKY ATRIBÚTY DOSTALI CLASS 'clickable-attr' A FUNKCIU PRE ZOBRAZENIE FILTROVANÉHO ALBUMU
                 let infoEl = `
                     <div class="card-info-text">
                         <div>
                             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
-                                <strong class="album-link-field" onclick="event.stopPropagation(); openAlbumView('name', '${card.firstName} ${card.lastName}');">${card.firstName} ${card.lastName}</strong>
+                                <strong class="clickable-attr" onclick="event.stopPropagation(); filterAttributeAndOpenAlbum('name', '${card.firstName} ${card.lastName}');">${card.firstName} ${card.lastName}</strong>
                             </div>
-                            <div class="album-link-field" onclick="event.stopPropagation(); openAlbumView('team', '${card.team}');">${card.team}</div>
+                            <div class="clickable-attr" onclick="event.stopPropagation(); filterAttributeAndOpenAlbum('team', '${card.team}');">${card.team}</div>
                             <div style="font-size:0.85rem; color:#aaa;">
-                                <span class="album-link-field" onclick="event.stopPropagation(); openAlbumView('set_manuf', '${card.manufacturer}');">${card.manufacturer}</span> 
-                                <span class="album-link-field" onclick="event.stopPropagation(); openAlbumView('set_manuf', '${card.set}');">${card.set}</span>
+                                ${card.manufacturer} <span class="clickable-attr" onclick="event.stopPropagation(); filterAttributeAndOpenAlbum('set', '${card.set}');">${card.set}</span>
                             </div>
                             <div style="font-size:0.85rem; color:#aaa;">${card.year}</div>
                             <div style="font-size:0.85rem; color:#bbb;">
-                                ${card.cardImgSymbol} 
-                                ${card.insert ? '- <span class="album-link-field" onclick="event.stopPropagation(); openAlbumView('insert', '${card.insert}');" style="font-weight: bold; font-style: italic; color: #fff;">' + card.insert + '</span>' : ''}
+                                ${card.cardImgSymbol} ${card.insert ? '- <span class="clickable-attr" onclick="event.stopPropagation(); filterAttributeAndOpenAlbum(\'insert\', \'' + card.insert + '\');" style="font-weight: bold; font-style: italic; color: #fff;">' + card.insert + '</span>' : ''}
                             </div>
                         </div>
                         <div class="card-info-bottom-row">
@@ -2471,10 +2466,9 @@
             container.appendChild(pagesDiv);
         }
 
-        // --- UNIFIKOVANÝ KASKÁDOVÝ DYNAMICKÝ AKTUALIZÁCIA MOŽNOSTÍ FILTROVANIA (Filtre miznú, ak pod nimi nič nie je) ---
+        // --- UNIFIKOVANÝ KASKÁDOVÝ FILTRAČNÝ SYSTÉM ---
         function updateFilterOptions(selCollections, selLeagues, selClubs, selManufs, selSets, selSeasons, selInserts, selCardTypes, query, onlyFav, onlyCharInNum, priceFrom, priceTo) {
             
-            // Pomocná funkcia, ktorá vráti zoznam kariet orezaný všetkými filtrami OKREM filtra, ktorý sa práve prepočítava
             const getFilteredExcept = (excludeKey) => {
                 return cards.filter(card => {
                     const cardLeague = card.league || getLeagueForTeam(card.team, "");
@@ -2487,7 +2481,6 @@
                     if(onlyFav && !card.favorite) return false;
                     if(onlyCharInNum && /^\d+$/.test(card.cardImgSymbol || '')) return false;
 
-                    // Zahrnutie kontroly cien aj do kaskádových filtrov
                     if(priceFrom !== null && card.price < priceFrom) return false;
                     if(priceTo !== null && card.price > priceTo) return false;
 
@@ -2527,10 +2520,8 @@
                 if (!container) return;
                 container.innerHTML = '';
 
-                // Získame iba tie karty, ktoré prešli ostatnými aktívnymi filtrami
                 const availableCards = getFilteredExcept(filterKey);
                 
-                // Zistíme unikátne položky a počet kusov v aktuálnom stave aplikácie
                 const countsMap = {};
                 availableCards.forEach(c => {
                     const vals = extractValuesFn(c);
@@ -2541,7 +2532,6 @@
                     });
                 });
 
-                // Zabezpečíme, aby začiarknuté filtre nezmizli úplne z UI, aj keď majú dočasne 0 výsledkov
                 checkedArray.forEach(checkedVal => {
                     if (!countsMap[checkedVal]) countsMap[checkedVal] = 0;
                 });
@@ -2550,7 +2540,6 @@
 
                 uniqueValues.forEach(val => {
                     const count = countsMap[val];
-                    // Ak je počet 0 a položka nie je začiarknutá, v súlade s logikou "filtre miznú" ju nevygenerujeme
                     if (count === 0 && !checkedArray.includes(val)) return;
 
                     const item = document.createElement('div');
@@ -2565,25 +2554,12 @@
                 });
             };
 
-            // 0. Zbierka
             populateGroup('f-collection', 'collection', selCollections, c => c.collections || []);
-
-            // 1. Liga
             populateGroup('f-league', 'league', selLeagues, c => [c.league || getLeagueForTeam(c.team, "")]);
-            
-            // 2. Klub
             populateGroup('f-club', 'club', selClubs, c => [c.team]);
-            
-            // 3. Manufaktúra
             populateGroup('f-manuf', 'manufacturer', selManufs, c => [c.manufacturer]);
-            
-            // 4. Set
             populateGroup('f-set', 'set', selSets, c => [c.set]);
-            
-            // 5. Sezóna
             populateGroup('f-season', 'season', selSeasons, c => [c.year]);
-
-            // 6. Plne interaktívny Multi-Filter pre Inserty (s fixnými voľbami + dynamickými položkami)
             populateGroup('f-insert', 'insert', selInserts, c => {
                 const arr = [];
                 if (c.insert && c.insert.trim() !== "") {
@@ -2594,8 +2570,6 @@
                 }
                 return arr;
             });
-
-            // 7. Nový Multi-Filter pre Typ Karty (FIFA)
             populateGroup('f-cardtype', 'cardtype', selCardTypes, c => {
                 const arr = [];
                 if (c.fifaType) {
@@ -2766,7 +2740,7 @@
                         cards = importedCards;
                         await saveToLocalStorage();
                         resetPaginationAndRender();
-                        alert('Dáta z JSON súboru úspešne importované and zobrazené!');
+                        alert('Dáta z JSON súboru úspešne importované a zobrazené!');
                     } else {
                         alert('Nesprávny formát JSON súboru.');
                     }
