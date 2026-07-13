@@ -82,10 +82,10 @@
             background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,234,67,0.18) 0%, rgba(0,0,0,0) 60%);
         }
         body.theme-premium .bg-glow-layer {
-            background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,255,255,0.15) 0%, rgba(0,0,0,0) 55%);
+            background: radial-gradient(circle at var(--x, 50%)Var(--y, 50%), rgba(255,255,255,0.15) 0%, rgba(0,0,0,0) 55%);
         }
         body.theme-bluemoon .bg-glow-layer {
-            background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(142,68,227,0.22) 0%, rgba(0,0,0,0) 60%);
+            background: radial-gradient(circle at var(--x, 50%)Var(--y, 50%), rgba(142,68,227,0.22) 0%, rgba(0,0,0,0) 60%);
         }
 
         @keyframes floatingShine {
@@ -329,6 +329,16 @@
             justify-content: space-between;
             position: relative;
             z-index: 5;
+        }
+
+        /* Pridané interaktívne štýly pre špecifické klikateľné polia filtrovaného albumu */
+        .album-link-field {
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+        .album-link-field:hover {
+            color: var(--accent-color) !important;
+            text-decoration: underline;
         }
 
         /* ŠPECIFICKÝ ŠTÝL PRE ZVÄČŠENÚ CENU V PRAVOM DOLNOM ROHU */
@@ -699,7 +709,7 @@
 
     <div id="albumViewOverlay" class="album-view-overlay">
         <span class="album-close-btn" onclick="closeAlbumView()">&times;</span>
-        <h2 style="text-align: center; text-transform: uppercase; margin-bottom: 25px; color: var(--accent-color);">📖 Kompletný Digitálny Album</h2>
+        <h2 id="albumViewTitle" style="text-align: center; text-transform: uppercase; margin-bottom: 25px; color: var(--accent-color);">📖 Kompletný Digitálny Album</h2>
         <div class="album-grid" id="albumGridContent"></div>
     </div>
 
@@ -1244,16 +1254,46 @@
         }
 
         // --- REŽIM UČELENÉHO ALBUMU (ÚPLNÁ FIXÁFIA, BEZ PREKRÝVANIA A S MINIATÚRAMI) ---
-        function openAlbumView() {
+        // Upravené pre podporu filtrovaného zobrazenia podľa kliknutých polí
+        function openAlbumView(filterField = null, filterValue = null) {
             closeModal('settingsModal');
             const overlay = document.getElementById('albumViewOverlay');
             const grid = document.getElementById('albumGridContent');
+            const title = document.getElementById('albumViewTitle');
             grid.innerHTML = '';
 
-            if(cards.length === 0) {
-                grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 40px; color:#aaa;">Žiadne karty v databáze pre zobrazenie albumu.</div>';
+            let cardsToDisplay = cards;
+
+            if (filterField && filterValue !== null && filterValue !== undefined) {
+                const cleanVal = filterValue.toString().trim().toLowerCase();
+                if (filterField === 'name') {
+                    cardsToDisplay = cards.filter(c => `${c.firstName} ${c.lastName}`.trim().toLowerCase() === cleanVal);
+                    title.innerText = `📖 Album: ${filterValue}`;
+                } else if (filterField === 'team') {
+                    cardsToDisplay = cards.filter(c => (c.team || '').trim().toLowerCase() === cleanVal);
+                    title.innerText = `🛡️ Album klubu: ${filterValue}`;
+                } else if (filterField === 'set_manuf') {
+                    // Filter pre manufaktúru alebo set
+                    cardsToDisplay = cards.filter(c => 
+                        (c.set || '').trim().toLowerCase() === cleanVal || 
+                        (c.manufacturer || '').trim().toLowerCase() === cleanVal
+                    );
+                    title.innerText = `📦 Album: ${filterValue}`;
+                } else if (filterField === 'insert') {
+                    cardsToDisplay = cards.filter(c => (c.insert || '').trim().toLowerCase() === cleanVal);
+                    title.innerText = `✨ Album insertu: ${filterValue}`;
+                } else if (filterField === 'fifa') {
+                    cardsToDisplay = cards.filter(c => (c.fifaType || '').trim().toLowerCase() === cleanVal);
+                    title.innerText = `🎮 Album FIFA: ${filterValue}`;
+                }
             } else {
-                cards.forEach(card => {
+                title.innerText = "📖 Kompletný Digitálny Album";
+            }
+
+            if(cardsToDisplay.length === 0) {
+                grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 40px; color:#aaa;">Žiadne zodpovedajúce karty v databáze pre tento album.</div>';
+            } else {
+                cardsToDisplay.forEach(card => {
                     const item = document.createElement('div');
                     item.className = 'album-item';
                     item.innerHTML = `<img src="${card.image || ''}" alt="Card Visual" onerror="this.style.display='none'">`;
@@ -2314,6 +2354,7 @@
                         e.stopPropagation();
                         handleCardClickInSelection(card.id);
                     } else {
+                        // Ak sa klikne na samotný box karty (napr. Fotku alebo neutrálne miesto pozadia), otvorí sa detail ako vždy
                         viewDetails(card.id);
                     }
                 };
@@ -2342,30 +2383,28 @@
                     else if(card.fifaType === "Talent") icon = "🔖 ";
                    
                    
-                    fifaBadgeHtml = `<div style="display:inline-flex; align-items:center; background:rgba(3,218,198,0.15); color:#03dac6; border:1px solid rgba(3,218,198,0.3); border-radius:4px; padding:2px 6px; font-size:0.75rem; font-weight:bold; margin-top:4px; width:fit-content;">${icon} ${card.fifaType}</div>`;
+                    fifaBadgeHtml = `<div class="album-link-field" onclick="event.stopPropagation(); openAlbumView('fifa', '${card.fifaType}');" style="display:inline-flex; align-items:center; background:rgba(3,218,198,0.15); color:#03dac6; border:1px solid rgba(3,218,198,0.3); border-radius:4px; padding:2px 6px; font-size:0.75rem; font-weight:bold; margin-top:4px; width:fit-content;">${icon} ${card.fifaType}</div>`;
                 }
 
-                // Vykreslenie popisu so zapracovaným formátovaným dátumom v zozname, ak existuje
-                let formattedDateBadge = "";
-                if (card.dateAdded) {
-                    const [y, m, d] = card.dateAdded.split('-');
-                    if (y && m && d) {
-                        formattedDateBadge = `<span style="font-size:0.75rem; background:rgba(255,255,255,0.08); padding:1px 4px; border-radius:3px; margin-left:6px; color:#aaa;">📅 ${d}.${m}.${y}</span>`;
-                    }
-                }
+                // Dátum bol odtiaľto z hlavného okna pri mene hráča odstránený a presunutý iba do detailu (Editácie).
 
-                // UPRAVENÉ ROZLOŽENIE: CENA PRESUNUTÁ DO PRAVÉHO DOLNÉHO ROHU POMOCOU 'card-info-bottom-row' A ZVÄČŠENÁ
+                // UPRAVENÉ ROZLOŽENIE: Kliknutia na špecifické textové polia otvárajú filtrovaný album (zamedzené bublaniu udalostí event.stopPropagation())
                 let infoEl = `
                     <div class="card-info-text">
                         <div>
                             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
-                                <strong>${card.firstName} ${card.lastName}</strong>
-                                ${formattedDateBadge}
+                                <strong class="album-link-field" onclick="event.stopPropagation(); openAlbumView('name', '${card.firstName} ${card.lastName}');">${card.firstName} ${card.lastName}</strong>
                             </div>
-                            <div>${card.team}</div>
-                            <div style="font-size:0.85rem; color:#aaa;">${card.manufacturer} ${card.set}</div>
+                            <div class="album-link-field" onclick="event.stopPropagation(); openAlbumView('team', '${card.team}');">${card.team}</div>
+                            <div style="font-size:0.85rem; color:#aaa;">
+                                <span class="album-link-field" onclick="event.stopPropagation(); openAlbumView('set_manuf', '${card.manufacturer}');">${card.manufacturer}</span> 
+                                <span class="album-link-field" onclick="event.stopPropagation(); openAlbumView('set_manuf', '${card.set}');">${card.set}</span>
+                            </div>
                             <div style="font-size:0.85rem; color:#aaa;">${card.year}</div>
-                            <div style="font-size:0.85rem; color:#bbb;">${card.cardImgSymbol} ${card.insert ? '- <span style="font-weight: bold; font-style: italic; color: #fff;">' + card.insert + '</span>' : ''}</div>
+                            <div style="font-size:0.85rem; color:#bbb;">
+                                ${card.cardImgSymbol} 
+                                ${card.insert ? '- <span class="album-link-field" onclick="event.stopPropagation(); openAlbumView('insert', '${card.insert}');" style="font-weight: bold; font-style: italic; color: #fff;">' + card.insert + '</span>' : ''}
+                            </div>
                         </div>
                         <div class="card-info-bottom-row">
                             ${fifaBadgeHtml}
@@ -2432,7 +2471,7 @@
             container.appendChild(pagesDiv);
         }
 
-        // --- UNIFIKOVANÁ KASKÁDOVÁ DYNAMICKÁ AKTUALIZÁCIA MOŽNOSTÍ FILTROVANIA (Filtre miznú, ak pod nimi nič nie je) ---
+        // --- UNIFIKOVANÝ KASKÁDOVÝ DYNAMICKÝ AKTUALIZÁCIA MOŽNOSTÍ FILTROVANIA (Filtre miznú, ak pod nimi nič nie je) ---
         function updateFilterOptions(selCollections, selLeagues, selClubs, selManufs, selSets, selSeasons, selInserts, selCardTypes, query, onlyFav, onlyCharInNum, priceFrom, priceTo) {
             
             // Pomocná funkcia, ktorá vráti zoznam kariet orezaný všetkými filtrami OKREM filtra, ktorý sa práve prepočítava
