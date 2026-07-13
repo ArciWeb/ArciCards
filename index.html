@@ -219,6 +219,7 @@
             border-radius: 6px;
             display: flex;
             justify-content: space-between;
+            align-items: center;
             border: 1px solid rgba(255,255,255,0.05);
             transition: background 0.2s;
         }
@@ -271,6 +272,8 @@
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             overflow: hidden;
             z-index: 5;
+            -webkit-user-select: none;
+            user-select: none;
         }
         body:not(.theme-standard) .card-box::after {
             content: ''; position: absolute; top:-50%; left:-50%; width:200%; height:200%;
@@ -284,6 +287,13 @@
             z-index: 6;
         }
         body:not(.theme-standard) .card-box:hover::after { left: 100%; transition: 0.7s; }
+
+        /* Vizuálny indikátor pre označenú kartu v režime výberu zbierky */
+        .card-box.bulk-selected {
+            border: 3px solid var(--accent-color) !important;
+            box-shadow: 0 0 15px var(--accent-color) !important;
+            transform: scale(0.98);
+        }
 
         .only-cards-mode .card-box {
             flex-direction: column;
@@ -522,6 +532,24 @@
         }
         .slot-box.active .slot-body { display: flex; }
         .slot-body button { padding: 8px 12px; font-size: 0.95rem; }
+
+        /* Fixovaná spodná lišta pre správu hromadného výberu zbierky */
+        .collection-action-bar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--card-bg);
+            border: 2px solid var(--accent-color);
+            border-radius: 12px;
+            padding: 12px 24px;
+            display: none;
+            align-items: center;
+            gap: 16px;
+            z-index: 9999;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+            backdrop-filter: blur(10px);
+        }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Cinzel:wght@600&family=Playfair+Check:ital,wght@1,600&family=Playfair+Display:ital,wght@1,600&display=swap" rel="stylesheet">
 </head>
@@ -561,11 +589,15 @@
     </div>
 
     <div class="section" style="padding: 6px;">
-        <div class="filter-header" onclick="toggleFilter('mainFiltersBox')" style="background: rgba(0,0,0,0.2); padding: 14px; margin-top: 0; border-radius: 8px;">
-            <span style="font-size: 1.05rem;">🔍 Zobraziť Filtre a Kategórie</span><span id="mainFiltersBox-indicator">▼</span>
+        <div class="filter-header" style="background: rgba(0,0,0,0.2); padding: 14px; margin-top: 0; border-radius: 8px;">
+            <span style="font-size: 1.05rem; cursor: pointer; flex-grow: 1;" onclick="toggleFilter('mainFiltersBox')">🔍 Zobraziť Filtre a Kategórie <span id="mainFiltersBox-indicator">▼</span></span>
+            <button class="btn-danger" onclick="clearAllFiltersAndRender()" style="padding: 6px 12px; font-size: 0.85rem; border-radius: 6px; z-index: 12;">Reset filtrov</button>
         </div>
         
         <div id="mainFiltersBox" class="filter-content" style="background: transparent; max-height: none; padding: 0; overflow: visible; border: none;">
+            <div class="filter-header" onclick="toggleFilter('f-collection')" style="margin-top: 10px;"><span>📚 Zbierka</span><span id="f-collection-indicator">▼</span></div>
+            <div id="f-collection" class="filter-content"></div>
+
             <div class="filter-header" onclick="toggleFilter('f-fav')" style="margin-top: 10px;"><span>❤️ Obľúbené</span><span id="f-fav-indicator">▼</span></div>
             <div id="f-fav" class="filter-content">
                 <div class="filter-item"><input type="checkbox" id="chk-fav" onchange="handleFilterChange()"> Zobraziť iba obľúbené</div>
@@ -626,6 +658,13 @@
     <div class="cards-grid" id="cardsGrid"></div>
     
     <div class="pagination-container" id="paginationContainer"></div>
+
+    <!-- Akčná spodná lišta pre hromadnú správu označených položiek do zbierok -->
+    <div id="collectionActionBar" class="collection-action-bar">
+        <span id="collectionSelectedCount" style="font-weight: bold; color: var(--accent-color);">Označené: 0 kariet</span>
+        <button class="btn-primary" onclick="promptCreateOrAddToCollection()">Vytvoriť zbierku</button>
+        <button class="btn-secondary" onclick="cancelBulkSelection()">Zrušiť</button>
+    </div>
 
     <div id="albumViewOverlay" class="album-view-overlay">
         <span class="album-close-btn" onclick="closeAlbumView()">&times;</span>
@@ -926,6 +965,11 @@
         let usedDetailsIndices = new Set();
         let bulkCurrentCardIndex = 0;
 
+        // Premenné pre správu hromadného výberu kartičiek (Zbierky)
+        let isBulkSelectionMode = false;
+        let selectedCardsIds = new Set();
+        let longPressTimer = null;
+
         function initDB() {
             return new Promise((resolve, reject) => {
                 const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -1137,7 +1181,7 @@
             resetPaginationAndRender();
         }
 
-        // --- REŽIM UČELENÉHO ALBUMU (ÚPLNÁ FIXÁCIA, BEZ PREKRÝVANIA A S MINIATÚRAMI) ---
+        // --- REŽIM UČELENÉHO ALBUMU (ÚPLNÁ FIXÁFIA, BEZ PREKRÝVANIA A S MINIATÚRAMI) ---
         function openAlbumView() {
             closeModal('settingsModal');
             const overlay = document.getElementById('albumViewOverlay');
@@ -1240,6 +1284,7 @@
             if (document.getElementById('chk-num-char').checked) return true;
             if (document.getElementById('priceFrom').value !== "") return true;
             if (document.getElementById('priceTo').value !== "") return true;
+            if (getSelectedCheckboxes('f-collection').length > 0) return true;
             if (getSelectedCheckboxes('f-league').length > 0) return true;
             if (getSelectedCheckboxes('f-club').length > 0) return true;
             if (getSelectedCheckboxes('f-manuf').length > 0) return true;
@@ -1255,11 +1300,13 @@
             document.getElementById('chk-num-char').checked = false;
             document.getElementById('priceFrom').value = "";
             document.getElementById('priceTo').value = "";
+            document.getElementById('globalSearch').value = "";
             
             const uncheckContainer = (id) => {
                 const el = document.getElementById(id);
                 if (el) el.querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = false);
             };
+            uncheckContainer('f-collection');
             uncheckContainer('f-league');
             uncheckContainer('f-club');
             uncheckContainer('f-manuf');
@@ -1267,6 +1314,11 @@
             uncheckContainer('f-season');
             uncheckContainer('f-insert');
             uncheckContainer('f-cardtype');
+        }
+
+        function clearAllFiltersAndRender() {
+            clearAllFilters();
+            resetPaginationAndRender();
         }
 
         function handleFilterChange() {
@@ -1293,6 +1345,112 @@
             blockPopstateEvent = true;
             window.history.back();
             setTimeout(() => { blockPopstateEvent = false; }, 50);
+        }
+
+        // --- LOGIKA DLHÉHO PODRŽANIA (LONG PRESS) A HROMADNÉHO VÝBERU ZBIEROK ---
+        function handleCardTouchStart(cardId) {
+            if (isBulkSelectionMode) return; 
+            longPressTimer = setTimeout(() => {
+                startBulkSelectionMode(cardId);
+            }, 700); 
+        }
+
+        function handleCardTouchEnd() {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+        }
+
+        function startBulkSelectionMode(firstCardId) {
+            isBulkSelectionMode = true;
+            selectedCardsIds.clear();
+            selectedCardsIds.add(firstCardId);
+            updateBulkSelectionUI();
+        }
+
+        function handleCardClickInSelection(cardId) {
+            if (selectedCardsIds.has(cardId)) {
+                selectedCardsIds.delete(cardId);
+            } else {
+                selectedCardsIds.add(cardId);
+            }
+            
+            if (selectedCardsIds.size === 0) {
+                cancelBulkSelection();
+            } else {
+                updateBulkSelectionUI();
+            }
+        }
+
+        function updateBulkSelectionUI() {
+            document.querySelectorAll('.card-box').forEach(box => {
+                const id = box.getAttribute('data-id');
+                if (selectedCardsIds.has(id)) {
+                    box.classList.add('bulk-selected');
+                } else {
+                    box.classList.remove('bulk-selected');
+                }
+            });
+
+            const actionBar = document.getElementById('collectionActionBar');
+            const countLabel = document.getElementById('collectionSelectedCount');
+            countLabel.innerText = `Označené: ${selectedCardsIds.size} kariet`;
+            actionBar.style.display = 'flex';
+        }
+
+        function cancelBulkSelection() {
+            isBulkSelectionMode = false;
+            selectedCardsIds.clear();
+            document.getElementById('collectionActionBar').style.display = 'none';
+            document.querySelectorAll('.card-box').forEach(box => box.classList.remove('bulk-selected'));
+        }
+
+        // Získanie všetkých unikátnych existujúcich zbierok v databáze
+        function getAllExistingCollections() {
+            const collections = new Set();
+            cards.forEach(c => {
+                if (c.collections && Array.isArray(c.collections)) {
+                    c.collections.forEach(coll => collections.add(coll));
+                }
+            });
+            return Array.from(collections).sort();
+        }
+
+        async function promptCreateOrAddToCollection() {
+            if (selectedCardsIds.size === 0) return;
+            
+            const existing = getAllExistingCollections();
+            let promptMsg = "Zadaj názov pre novú zbierku, alebo napíš presný názov existujúcej zbierky, do ktorej chceš karty pridať.\n";
+            if (existing.length > 0) {
+                promptMsg += "\nExistujúce zbierky: " + existing.join(", ");
+            }
+
+            const chosenName = prompt(promptMsg);
+            if (chosenName === null) return;
+            
+            const cleanName = chosenName.trim();
+            if (cleanName === "") {
+                alert("Názov zbierky nemôže byť prázdny!");
+                return;
+            }
+
+            // Pridanie zbierky k označeným kartám
+            cards.forEach(card => {
+                if (selectedCardsIds.has(card.id)) {
+                    if (!card.collections) {
+                        card.collections = [];
+                    }
+                    if (!card.collections.includes(cleanName)) {
+                        card.collections.push(cleanName);
+                    }
+                }
+            });
+
+            await saveToLocalStorage();
+            cancelBulkSelection();
+            resetPaginationAndRender();
+            alert(`Karty boli úspešne priradené do zbierky: "${cleanName}"`);
         }
 
         function toggleFilter(id) {
@@ -1422,7 +1580,7 @@
             }
 
             document.getElementById('bulkAiLoading').style.display = 'block';
-            document.getElementById('bulkStatusText').innerText = "Načítavam a optimalizujem súbory...";
+            document.getElementById('bulkStatusText').innerText = "Načítavam and optimalizujem súbory...";
 
             try {
                 bulkCardImages = [];
@@ -1621,7 +1779,8 @@
                 price: parseFloat(document.getElementById('bs_price').value) || 0,
                 image: currentCard.base64,
                 favorite: false,
-                fifaType: fifaTag 
+                fifaType: fifaTag,
+                collections: []
             };
 
             cards.push(newCard);
@@ -1698,7 +1857,8 @@
                 price: price,
                 image: currentCardImageBase64,
                 favorite: false,
-                fifaType: fifaTag 
+                fifaType: fifaTag,
+                collections: []
             };
 
             cards.push(newCard);
@@ -1867,6 +2027,7 @@
             const sortKey = document.getElementById('sortSelect').value;
             const sortDirection = document.getElementById('sortDirectionSelect').value;
 
+            const selectedCollections = getSelectedCheckboxes('f-collection');
             const selectedLeagues = getSelectedCheckboxes('f-league');
             const selectedClubs = getSelectedCheckboxes('f-club');
             const selectedManufs = getSelectedCheckboxes('f-manuf');
@@ -1898,11 +2059,17 @@
                 if(priceFrom !== null && card.price < priceFrom) return false;
                 if(priceTo !== null && card.price > priceTo) return false;
 
+                // FILTER PRE ZBIERKY
+                if(selectedCollections.length > 0) {
+                    if(!card.collections || !card.collections.some(c => selectedCollections.includes(c))) return false;
+                }
+
                 if(selectedLeagues.length > 0 && !selectedLeagues.includes(cardLeague)) return false;
                 if(selectedClubs.length > 0 && !selectedClubs.includes(card.team)) return false;
 
                 if(selectedManufs.length > 0 && !selectedManufs.includes(card.manufacturer)) return false;
                 if(selectedSets.length > 0 && !selectedSets.includes(card.set)) return false;
+                if(selectedLeagues.length > 0 && !selectedLeagues.includes(cardLeague)) return false;
                 if(selectedSeasons.length > 0 && !selectedSeasons.includes(card.year)) return false;
 
                 if(selectedInserts.length > 0) {
@@ -1932,7 +2099,7 @@
             filteredCards = sortCards(filteredCards, sortKey, sortDirection);
             
             // Plne interaktívna kaskádová aktualizácia filtrov na základe vybraných hodnôt
-            updateFilterOptions(selectedLeagues, selectedClubs, selectedManufs, selectedSets, selectedSeasons, selectedInserts, selectedCardTypes, query, onlyFav, onlyCharInNum, priceFrom, priceTo);
+            updateFilterOptions(selectedCollections, selectedLeagues, selectedClubs, selectedManufs, selectedSets, selectedSeasons, selectedInserts, selectedCardTypes, query, onlyFav, onlyCharInNum, priceFrom, priceTo);
 
             let totalFilteredPrice = 0;
             let favFilteredCount = 0;
@@ -1996,7 +2163,29 @@
             paginatedCards.forEach(card => {
                 const box = document.createElement('div');
                 box.className = 'card-box';
-                box.onclick = () => viewDetails(card.id);
+                box.setAttribute('data-id', card.id);
+
+                // Integrácia správania long-press a hromadného výberu
+                box.onmousedown = () => handleCardTouchStart(card.id);
+                box.onmouseup = () => handleCardTouchEnd();
+                box.onmouseleave = () => handleCardTouchEnd();
+                box.ontouchstart = () => handleCardTouchStart(card.id);
+                box.ontouchend = () => handleCardTouchEnd();
+
+                box.onclick = (e) => {
+                    if (isBulkSelectionMode) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleCardClickInSelection(card.id);
+                    } else {
+                        viewDetails(card.id);
+                    }
+                };
+
+                // Ak sme v režime hromadného označovania a karta je vybraná, aplikujeme CSS classu
+                if (isBulkSelectionMode && selectedCardsIds.has(card.id)) {
+                    box.classList.add('bulk-selected');
+                }
 
                 const favClass = card.favorite ? 'fav-icon active' : 'fav-icon';
                 const favEl = `<span class="${favClass}" onclick="toggleFavorite('${card.id}', event)">♥</span>`;
@@ -2096,7 +2285,7 @@
         }
 
         // --- UNIFIKOVANÁ KASKÁDOVÁ DYNAMICKÁ AKTUALIZÁCIA MOŽNOSTÍ FILTROVANIA (Filtre miznú, ak pod nimi nič nie je) ---
-        function updateFilterOptions(selLeagues, selClubs, selManufs, selSets, selSeasons, selInserts, selCardTypes, query, onlyFav, onlyCharInNum, priceFrom, priceTo) {
+        function updateFilterOptions(selCollections, selLeagues, selClubs, selManufs, selSets, selSeasons, selInserts, selCardTypes, query, onlyFav, onlyCharInNum, priceFrom, priceTo) {
             
             // Pomocná funkcia, ktorá vráti zoznam kariet orezaný všetkými filtrami OKREM filtra, ktorý sa práve prepočítava
             const getFilteredExcept = (excludeKey) => {
@@ -2115,6 +2304,9 @@
                     if(priceFrom !== null && card.price < priceFrom) return false;
                     if(priceTo !== null && card.price > priceTo) return false;
 
+                    if(excludeKey !== 'collection' && selCollections.length > 0) {
+                        if(!card.collections || !card.collections.some(c => selCollections.includes(c))) return false;
+                    }
                     if(excludeKey !== 'league' && selLeagues.length > 0 && !selLeagues.includes(cardLeague)) return false;
                     if(excludeKey !== 'club' && selClubs.length > 0 && !selClubs.includes(card.team)) return false;
                     if(excludeKey !== 'manufacturer' && selManufs.length > 0 && !selManufs.includes(card.manufacturer)) return false;
@@ -2185,6 +2377,9 @@
                     container.appendChild(item);
                 });
             };
+
+            // 0. Zbierka
+            populateGroup('f-collection', 'collection', selCollections, c => c.collections || []);
 
             // 1. Liga
             populateGroup('f-league', 'league', selLeagues, c => [c.league || getLeagueForTeam(c.team, "")]);
