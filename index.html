@@ -773,23 +773,32 @@
             border-bottom: none;
         }
 
-        /* Navigačné šípky v detaile albumu */
+        /* Navigačné šípky v detaile albumu a hlavnom menu - OPRAVENÉ PRE SPOĽAHLIVÉ ZOBRAZENIE */
         .album-nav-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 15px;
+            margin-top: 20px;
+            margin-bottom: 15px;
             gap: 15px;
+            position: relative;
+            z-index: 6500;
+            width: 100%;
+            box-sizing: border-box;
         }
         .album-nav-btn {
             background: rgba(255,255,255,0.08);
             color: white;
             border: 1px solid var(--border-color);
-            padding: 8px 16px;
+            padding: 10px 16px;
             border-radius: 6px;
             cursor: pointer;
             font-size: 1.1rem;
             flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, color 0.2s;
         }
         .album-nav-btn:hover {
             background: var(--accent-color);
@@ -1151,13 +1160,20 @@
         </div>
     </div>
 
-    <!-- DRUHÉ MODÁLNE OKNO PRE ZOBRAZENIE KARTY BEZ UPRAVOVANIA (Z ALBUMU) S PREPÍNANÍM ŠÍPKAMI -->
+    <!-- DRUHÉ MODÁLNE OKNO PRE ZOBRAZENIE KARTY BEZ UPRAVOVANIA (Z ALBUMU) S PREPÍNANÍM ŠÍPKAMI (ZAFIXOVANÉ V STREDE MEDZI OBSAHOM) -->
     <div id="cardViewModal" class="modal">
         <div class="modal-content">
             <span class="close-modal" onclick="closeModal('cardViewModal')">&times;</span>
             <h2 id="v_title" style="color: var(--accent-color); text-align: center; margin-bottom: 15px;">Náhľad Kartičky</h2>
+            
             <img id="v_cardPreview" class="preview-img-large" src="" alt="Náhľad">
             
+            <!-- NAVIGAČNÉ ŠÍPKY EXPLICITNE UMIESTNENÉ MEDZI FOTKOU A POPISOM - OPRAVENÉ NA DISPLAY FLEX -->
+            <div class="album-nav-row" style="display: flex;">
+                <button type="button" class="album-nav-btn" id="albumNavLeftBtn">⬅️ Doľava</button>
+                <button type="button" class="album-nav-btn" id="albumNavRightBtn">Doprava ➡️</button>
+            </div>
+
             <div class="card-view-details-list">
                 <div class="card-view-detail-item">
                     <span class="label">Meno a priezvisko:</span>
@@ -1208,16 +1224,10 @@
                     <span class="value" id="v_price" style="color: var(--accent-color); font-size: 1.1rem;"></span>
                 </div>
             </div>
-
-            <!-- NOVÝ RIADOK PRE NAVIGAČNÉ ŠÍPKY V ALBUMLISTE (DOĽAVA / DOPRAVA) -->
-            <div class="album-nav-row">
-                <button type="button" class="album-nav-btn" id="albumNavLeftBtn">⬅️ Doľava</button>
-                <button type="button" class="album-nav-btn" id="albumNavRightBtn">Doprava ➡️</button>
-            </div>
         </div>
     </div>
 
-    <!-- TRETIE ÚPLNE NOVÉ MODÁLNE OKNO PRE KLIKNUTIE NA FOTKU V HLAVNOM MENU (VEĽKÁ FOTKA NAĽAVO, ČISTÝ POPIS NAPRAVO) -->
+    <!-- TRETIE MODÁLNE OKNO PRE KLIKNUTIE NA FOTKU V HLAVNOM MENU (ŠÍPKY VYTIAHNUTÉ VON PRE DOKONALÉ ZOBRAZENIE) -->
     <div id="cardPreviewMenuModal" class="modal">
         <div class="modal-content" style="max-width: 650px;">
             <span class="close-modal" onclick="closeModal('cardPreviewMenuModal')">&times;</span>
@@ -1227,20 +1237,15 @@
                 <div class="menu-preview-left">
                     <img id="vm_cardPreview" src="" alt="Foto" style="width:100%; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.5); border:1px solid var(--border-color);">
                 </div>
-                <div class="menu-preview-right">
-                    <div class="menu-preview-value-item" id="vm_fullName" style="font-size:1.3rem; color:var(--accent-color); border-bottom:2px solid var(--border-color); padding-bottom:6px;"></div>
-                    <div class="menu-preview-value-item" id="vm_team"></div>
-                    <div class="menu-preview-value-item" id="vm_league"></div>
-                    <div class="menu-preview-value-item" id="vm_set"></div>
-                    <div class="menu-preview-value-item" id="vm_manufacturer"></div>
-                    <div class="menu-preview-value-item" id="vm_year"></div>
-                    <div class="menu-preview-value-item" id="vm_cardImgSymbol"></div>
-                    <div class="menu-preview-value-item" id="vm_insert"></div>
-                    <div class="menu-preview-value-item" id="vm_fifaType"></div>
-                    <div class="menu-preview-value-item" id="vm_dateAdded"></div>
-                    <div class="menu-preview-value-item" id="vm_collections"></div>
-                    <div class="menu-preview-value-item" id="vm_price" style="font-size:1.2rem; color:var(--accent-color); margin-top:5px;"></div>
+                <div class="menu-preview-right" id="vm_detailsContainer">
+                    <!-- Detaily sa tu generujú dynamicky cez JS, aby prázdne kolónky zmizli úplne bez stopy -->
                 </div>
+            </div>
+
+            <!-- SAMOSTATNÝ NAVIGAČNÝ PANEL PRE HLAVNÉ MENU BEZPEČNE UMIESTNENÝ MEDZI BLOKMI -->
+            <div class="album-nav-row" style="display: flex; margin-top: 20px; margin-bottom: 5px;">
+                <button type="button" class="album-nav-btn" id="menuNavLeftBtn">⬅️ Doľava</button>
+                <button type="button" class="album-nav-btn" id="menuNavRightBtn">Doprava ➡️</button>
             </div>
         </div>
     </div>
@@ -1357,6 +1362,7 @@
         let currentAlbumSubMode = 'all'; // 'all' alebo 'sets'
         let lastSelectedSetBadgeKey = null; // Pamätá si aktívnu sadu v albume
         let currentAlbumActiveCardsList = []; // Uchováva zoradený zoznam kariet aktuálne zobrazených v albume pre šípky
+        let currentMenuActiveCardsList = [];  // Uchováva vyfiltrovaný zoznam kariet hlavného menu pre navigáciu šípkami
 
         // Časový zámok pre tlačidlo späť
         let lastBackPressTime = 0;
@@ -1941,7 +1947,7 @@
             window.history.back();
             setTimeout(() => { 
                 blockPopstateEvent = false; 
-                if (id === 'detailModal' || id === 'cardViewModal') {
+                if (id === 'detailModal' || id === 'cardViewModal' || id === 'cardPreviewMenuModal') {
                     checkAndReturnToAlbum();
                 }
             }, 50);
@@ -2315,7 +2321,7 @@
                 document.getElementById('bs_fifaTypeCustom').style.display = 'none';
                 document.getElementById('bs_price').value = "0.00";
 
-                document.getElementById('bulkAiLoading').style.none = 'none';
+                document.getElementById('bulkAiLoading').style.display = 'none';
                 openModal('bulkStepModal');
 
             } catch (err) {
@@ -2488,7 +2494,7 @@
             renderApp();
         }
 
-        // DRUHÉ MODÁLNE OKNO IBA PRE PREZENTÁCIU A POPIS KARTY BEZ EDITÁCIE (NAČÍTANIE OBSAHU + LOGIKA ŠÍPOK)
+        // DRUHÉ MODÁLNE OKNO IBA PRE PREZENTÁCIU A POPIS KARTY BEZ EDITÁCIE (NAČÍTANIE OBSAHU + LOGIKA ŠÍPOK V STREDE - OPRAVENÉ DISPLAY: FLEX)
         function viewCardOnlyPreview(id) {
             const card = cards.find(c => c.id === id);
             if(!card) return;
@@ -2523,8 +2529,8 @@
                 leftBtn.style.display = 'none';
                 rightBtn.style.display = 'none';
             } else {
-                leftBtn.style.display = 'block';
-                rightBtn.style.display = 'block';
+                leftBtn.style.display = 'inline-flex';
+                rightBtn.style.display = 'inline-flex';
 
                 leftBtn.onclick = (e) => {
                     e.stopPropagation();
@@ -2548,32 +2554,101 @@
             }
         }
 
-        // TRETIE ÚPLNE NOVÉ OKNO PRE KLIKNUTIE NA FOTKU V HLAVNOM MENU (VEĽKÁ FOTKA NAĽAVO, ČISTÉ DATA NAPRAVO)
+        // TRETIE ÚPLNE NOVÉ OKNO PRE KLIKNUTIE NA FOTKU V HLAVNOM MENU (OPRAVENÉ SKRÝVANIE PRÁZDNYCH COLONIEK A SHIRKY SIPOK)
         function viewCardMenuPhotoOnly(id) {
             const card = cards.find(c => c.id === id);
             if(!card) return;
 
-            document.getElementById('vm_title').innerText = "Prezeranie Karty";
+            document.getElementById('vm_title').innerText = "Náhľad Hráča";
             document.getElementById('vm_cardPreview').src = card.image;
-            document.getElementById('vm_fullName').innerText = `${card.firstName} ${card.lastName}`.trim() || 'Nezadané';
-            document.getElementById('vm_team').innerText = card.team || 'Nezadané';
-            document.getElementById('vm_league').innerText = card.league || getLeagueForTeam(card.team, "") || 'Nezadané';
-            document.getElementById('vm_set').innerText = card.set || 'Nezadané';
-            document.getElementById('vm_manufacturer').innerText = card.manufacturer || 'Nezadané';
-            document.getElementById('vm_year').innerText = card.year || 'Nezadané';
-            document.getElementById('vm_cardImgSymbol').innerText = card.cardImgSymbol || 'Nezadané';
-            document.getElementById('vm_insert').innerText = card.insert || 'Žiadny (Base)';
-            document.getElementById('vm_fifaType').innerText = card.fifaType || 'Žiadne';
-            document.getElementById('vm_dateAdded').innerText = card.dateAdded || 'Nezadaný';
-            document.getElementById('vm_price').innerText = `${card.price.toFixed(2)} €`;
 
-            let collsText = 'Žiadne';
+            // Pomocná funkcia, ktorá určí, či má byť atribút skrytý
+            const isFieldEmpty = (value) => {
+                if (!value) return true;
+                const clean = value.toString().trim().toLowerCase();
+                return clean === "" || clean === "nezadané" || clean === "nezadaný" || clean === "žiadne" || clean === "žiadny" || clean === "žiadny (base)";
+            };
+
+            // Dynamická tvorba detailov (ak je kolonka prázdna/nezadaná, vôbec ju nevytvoríme)
+            const detailsContainer = document.getElementById('vm_detailsContainer');
+            detailsContainer.innerHTML = '';
+
+            const fullName = `${card.firstName} ${card.lastName}`.trim();
+            if (!isFieldEmpty(fullName)) {
+                detailsContainer.innerHTML += `<div class="menu-preview-value-item" id="vm_fullName" style="font-size:1.3rem; color:var(--accent-color); border-bottom:2px solid var(--border-color); padding-bottom:6px;">${fullName}</div>`;
+            }
+            if (!isFieldEmpty(card.team)) {
+                detailsContainer.innerHTML += `<div class="menu-preview-value-item">🛡️ Klub: ${card.team}</div>`;
+            }
+            const leagueVal = card.league || getLeagueForTeam(card.team, "");
+            if (!isFieldEmpty(leagueVal)) {
+                detailsContainer.innerHTML += `<div class="menu-preview-value-item">🌍 Liga: ${leagueVal}</div>`;
+            }
+            if (!isFieldEmpty(card.set)) {
+                detailsContainer.innerHTML += `<div class="menu-preview-value-item">📦 Set: ${card.set}</div>`;
+            }
+            if (!isFieldEmpty(card.manufacturer)) {
+                detailsContainer.innerHTML += `<div class="menu-preview-value-item">🏭 Manufaktúra: ${card.manufacturer}</div>`;
+            }
+            if (!isFieldEmpty(card.year)) {
+                detailsContainer.innerHTML += `<div class="menu-preview-value-item">📅 Sezóna: ${card.year}</div>`;
+            }
+            if (!isFieldEmpty(card.cardImgSymbol)) {
+                detailsContainer.innerHTML += `<div class="menu-preview-value-item">🔢 Číslo karty: ${card.cardImgSymbol}</div>`;
+            }
+            if (!isFieldEmpty(card.insert)) {
+                detailsContainer.innerHTML += `<div class="menu-preview-value-item">✨ Insert: ${card.insert}</div>`;
+            }
+            if (!isFieldEmpty(card.fifaType)) {
+                detailsContainer.innerHTML += `<div class="menu-preview-value-item">🎮 FIFA Typ: ${card.fifaType}</div>`;
+            }
+            if (!isFieldEmpty(card.dateAdded)) {
+                detailsContainer.innerHTML += `<div class="menu-preview-value-item">📅 Pridané: ${card.dateAdded}</div>`;
+            }
+            
+            let collsText = '';
             if (card.collections && card.collections.length > 0) {
                 collsText = card.collections.join(', ');
             }
-            document.getElementById('vm_collections').innerText = collsText;
+            if (!isFieldEmpty(collsText)) {
+                detailsContainer.innerHTML += `<div class="menu-preview-value-item">📚 Zbierky: ${collsText}</div>`;
+            }
 
-            openModal('cardPreviewMenuModal');
+            // Cena sa zobrazuje vždy na spodku boxu
+            detailsContainer.innerHTML += `<div class="menu-preview-value-item" style="font-size:1.2rem; color:var(--accent-color); margin-top:5px; border-top: 1px solid var(--border-color); padding-top: 8px;">💰 Cena: ${card.price.toFixed(2)} €</div>`;
+
+            // Logika prepínania šípok pre hlavné menu (používa rovnaký vyfiltrovaný zoznam kariet)
+            const currentIdx = currentMenuActiveCardsList.findIndex(c => c.id === id);
+            const leftBtn = document.getElementById('menuNavLeftBtn');
+            const rightBtn = document.getElementById('menuNavRightBtn');
+
+            if (currentMenuActiveCardsList.length <= 1) {
+                leftBtn.style.display = 'none';
+                rightBtn.style.display = 'none';
+            } else {
+                leftBtn.style.display = 'inline-flex';
+                rightBtn.style.display = 'inline-flex';
+
+                leftBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    let targetIdx = currentIdx - 1;
+                    if (targetIdx < 0) targetIdx = currentMenuActiveCardsList.length - 1; // cyklické pretáčanie
+                    const prevCard = currentMenuActiveCardsList[targetIdx];
+                    viewCardMenuPhotoOnly(prevCard.id);
+                };
+
+                rightBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    let targetIdx = currentIdx + 1;
+                    if (targetIdx >= currentMenuActiveCardsList.length) targetIdx = 0; // cyklické pretáčanie
+                    const nextCard = currentMenuActiveCardsList[targetIdx];
+                    viewCardMenuPhotoOnly(nextCard.id);
+                };
+            }
+
+            if (openModalsStack.indexOf('cardPreviewMenuModal') === -1) {
+                openModal('cardPreviewMenuModal');
+            }
         }
 
         function viewDetails(id) {
@@ -2665,7 +2740,7 @@
         }
 
         async function removeCollectionFromCard(cardId, collectionName) {
-            const card = cards.find(c => c.id === cardId);
+            const card = cards.find(c => cardId === card.id);
             if (card && card.collections) {
                 card.collections = card.collections.filter(c => c !== collectionName);
                 await saveToLocalStorage();
@@ -2864,6 +2939,10 @@
             });
 
             filteredCards = sortCards(filteredCards, sortKey, sortDirection);
+            
+            // Uloženie vyfiltrovaného a zoradeného zoznamu do globálnej pamäte pre prezeranie z hlavného menu
+            currentMenuActiveCardsList = [...filteredCards];
+
             updateFilterOptions(selectedCollections, selectedSetsCombo, selectedLeagues, selectedClubs, selectedManufs, selectedSets, selectedSeasons, selectedInserts, selectedCardTypes, query, onlyFav, onlyCharInNum, priceFrom, priceTo);
 
             const refreshHeaderHighlight = (headerId, isActive) => {
@@ -3129,7 +3208,7 @@
                         
                         const isHracType = ["Bez označenia", "Legenda", "Ultra Legenda", "Kvalitný hráč", "Talent"].includes(typeLabel);
                         const isTrenerType = ["Manažér"].includes(typeLabel);
-                        const isFifaType = ["Logo", "Lopta", "Trofej", "Štadión", "Woman"].includes(typeLabel) || (!!card.fifaType && !isHracType && !isTrenerType);
+                        const isFifaType = ["Logo", "Lopta", "Trofej", "Štadión", "Woman"].includes(typeLabel) || (!!c.fifaType && !isHracType && !isTrenerType);
 
                         const belongsToHrac = !card.fifaType || isHracType;
                         const belongsToTrener = isTrenerType;
