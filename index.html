@@ -1694,15 +1694,18 @@
                 availableDetails = bulkDetailsImages;
             }
 
-            try {
+         try {
                 let promptText = `Analyze the first image (which is a visual of a sports trading card). Scan it carefully to read the player's name (printed vertically, horizontally, top or bottom).
                 
                 CRITICAL MATCHING TASK: You are also provided with a subsequent set of text data sheet images (labeled in order as Index 0, Index 1, Index 2, etc.). Match the identity from the card visual to the correct text data sheet.
+                
+                CRITICAL RULE FOR EXTRACTION: Once you determine the correct matching text data sheet index, you MUST extract all data fields EXCLUSIVELY and STRICTLY from that specific matched text data sheet image. Do NOT look at the other text data sheets for data, and do NOT hallucinate or guess any values from other images. If the matched sheet says "206", the "cardImgSymbol" MUST be exactly "206". If it says "Pitch Perfection", the "insert" MUST be exactly "Pitch Perfection".
+                
                 From that matched text data sheet, extract the fields: "firstName", "lastName", "team", "league" (find the league name like Premier League, Bundesliga, La Liga etc.), "set", "manufacturer", "year", "cardImgSymbol" (the card number like '125', 'L22'), "insert".
                 
                 Return the 0-based integer index of the matching text data sheet visual in the "matchedIndex" field. If no clear match can be identified, return -1.
                 Return strictly as a JSON object with all fields and the "matchedIndex" property. Do not wrap in markdown blocks, do not explain.`;
-
+   
                 let messageContent = [];
                 messageContent.push({ type: "text", text: promptText });
                 messageContent.push({ type: "image_url", image_url: { url: currentCard.base64 } });
