@@ -1036,6 +1036,9 @@
         let lastAlbumSubset = null;
         let lastAlbumTitle = "";
 
+        // Časový zámok pre tlačidlo späť (ochrana pred neželaným zatvorením aplikácie)
+        let lastBackPressTime = 0;
+
         function initDB() {
             return new Promise((resolve, reject) => {
                 const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -1385,6 +1388,11 @@
         window.addEventListener('popstate', (event) => {
             if (blockPopstateEvent) return;
 
+            // Kontrola časového limitu (2 sekundy) na ochranu pred náhodným zatvorením aplikácie
+            const currentTime = Date.now();
+            const isWithinTwoSeconds = (currentTime - lastBackPressTime) < 2000;
+            lastBackPressTime = currentTime;
+
             if (document.getElementById('albumViewOverlay').style.display === 'block') {
                 closeAlbumView();
                 return;
@@ -1401,6 +1409,13 @@
                 clearAllFilters();
                 renderApp();
                 return;
+            }
+
+            // Ak používateľ stlačil späť mimo modálov/albumov a filtre nie sú aktívne:
+            // Ak ubehlo viac ako 2 sekundy od minulého stlačenia, zablokujeme predvolené správanie (zavretie/vyhodenie z PWA)
+            if (!isWithinTwoSeconds) {
+                // Vtlačíme stav naspäť do histórie, aby aplikácia ostala otvorená
+                window.history.pushState({ type: 'root' }, '');
             }
         });
 
@@ -2570,11 +2585,60 @@
                     if (!countsMap[checkedVal]) countsMap[checkedVal] = 0;
                 });
 
-                // ZMENA RADENIA: Názvy sa zoraďujú dynamicky zostupne podľa počtu aktívnych kartičiek
-                const uniqueValues = Object.keys(countsMap).sort((a, b) => {
+                let uniqueValues = [];
+                
+                // AK IDE O FILTRE PRE FIFA KATEGÓRIU (f-cardtype), VLOŽÍME PRVKY FIFA A HRÁČ NA SAMÝ VRCH A ODODELÍME ICH ČIAROU
+                if (filterKey === 'cardtype') {
+                    const topItems = ["FIFA", "Hráč"];
+                    // Zvyšné unikátne hodnoty zoradíme podľa počtu kusov zostupne
+                    const remainingItems = Object.keys(countsMap).filter(k => !topItems.includes(k)).sort((a, b) => {
+                        const countDiff = countsMap[b] - countsMap[a];
+                        if (countDiff !== 0) return countDiff;
+                        return a.localeCompare(b);
+                    });
+                    
+                    // Najprv vygenerujeme hlavné položky na vrchu
+                    topItems.forEach(val => {
+                        const count = countsMap[val] || 0;
+                        if (count === 0 && !checkedArray.includes(val)) return;
+
+                        const item = document.createElement('div');
+                        item.className = 'filter-item';
+                        const isChecked = checkedArray.includes(val) ? 'checked' : '';
+                        item.innerHTML = `
+                            <input type="checkbox" value="${val}" ${isChecked} onchange="handleFilterChange()">
+                            <span style="font-weight: bold; color: var(--accent-color);">${val} (${count})</span>
+                        `;
+                        container.appendChild(item);
+                    });
+
+                    // Jemná oddeľovacia čiara medzi hlavnými a podriadenými filtrami
+                    const separator = document.createElement('hr');
+                    separator.style.cssText = "border: 0; border-top: 1px solid var(--border-color); margin: 8px 0; opacity: 0.6;";
+                    container.appendChild(separator);
+
+                    // Následne vygenerujeme zvyšné podriadené položky
+                    remainingItems.forEach(val => {
+                        const count = countsMap[val];
+                        if (count === 0 && !checkedArray.includes(val)) return;
+
+                        const item = document.createElement('div');
+                        item.className = 'filter-item';
+                        const isChecked = checkedArray.includes(val) ? 'checked' : '';
+                        item.innerHTML = `
+                            <input type="checkbox" value="${val}" ${isChecked} onchange="handleFilterChange()">
+                            <span style="padding-left: 6px; font-size: 0.9rem; opacity: 0.85;">${val} (${count})</span>
+                        `;
+                        container.appendChild(item);
+                    });
+                    return;
+                }
+
+                // ŠTANDARDNÉ DYNAMICKÉ RADENIE ZOSTUPNE PRE VŠETKY OSTATNÉ SKUPINY FILTROV
+                uniqueValues = Object.keys(countsMap).sort((a, b) => {
                     const countDiff = countsMap[b] - countsMap[a];
                     if (countDiff !== 0) return countDiff;
-                    return a.localeCompare(b); // Sekundárne abecedné radenie pri rovnosti počtov
+                    return a.localeCompare(b); 
                 });
 
                 uniqueValues.forEach(val => {
