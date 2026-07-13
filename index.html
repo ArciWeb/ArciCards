@@ -442,6 +442,32 @@
             border: 1px solid var(--border-color);
         }
 
+        /* Štýl pre pekné neupravovateľné zobrazenie detailov karty */
+        .card-view-details-list {
+            margin-top: 15px;
+            background: rgba(0,0,0,0.25);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px;
+        }
+        .card-view-detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dashed rgba(255,255,255,0.1);
+        }
+        .card-view-detail-item:last-child {
+            border-bottom: none;
+        }
+        .card-view-detail-item .label {
+            color: #aaa;
+            font-weight: 600;
+        }
+        .card-view-detail-item .value {
+            color: #fff;
+            font-weight: bold;
+        }
+
         .view-modes { display: flex; gap: 10px; margin-bottom: 12px; }
         .view-modes button { background: rgba(255,255,255,0.06); color: #fff; flex: 1; }
         .view-modes button.active { background: var(--accent-color); color: #000; }
@@ -1043,6 +1069,66 @@
         </div>
     </div>
 
+    <!-- NOVÉ MODÁLNE OKNO PRE ZOBRAZENIE KARTY BEZ UPRAVOVANIA -->
+    <div id="cardViewModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('cardViewModal')">&times;</span>
+            <h2 id="v_title" style="color: var(--accent-color); text-align: center; margin-bottom: 15px;">Náhľad Kartičky</h2>
+            <img id="v_cardPreview" class="preview-img-large" src="" alt="Náhľad">
+            
+            <div class="card-view-details-list">
+                <div class="card-view-detail-item">
+                    <span class="label">Meno a priezvisko:</span>
+                    <span class="value" id="v_fullName"></span>
+                </div>
+                <div class="card-view-detail-item">
+                    <span class="label">Klub / Tím:</span>
+                    <span class="value" id="v_team"></span>
+                </div>
+                <div class="card-view-detail-item">
+                    <span class="label">Liga:</span>
+                    <span class="value" id="v_league"></span>
+                </div>
+                <div class="card-view-detail-item">
+                    <span class="label">Set / Edícia:</span>
+                    <span class="value" id="v_set"></span>
+                </div>
+                <div class="card-view-detail-item">
+                    <span class="label">Manufaktúra:</span>
+                    <span class="value" id="v_manufacturer"></span>
+                </div>
+                <div class="card-view-detail-item">
+                    <span class="label">Sezóna:</span>
+                    <span class="value" id="v_year"></span>
+                </div>
+                <div class="card-view-detail-item">
+                    <span class="label">Číslo / Znak karty:</span>
+                    <span class="value" id="v_cardImgSymbol"></span>
+                </div>
+                <div class="card-view-detail-item">
+                    <span class="label">Insert:</span>
+                    <span class="value" id="v_insert"></span>
+                </div>
+                <div class="card-view-detail-item">
+                    <span class="label">FIFA označenie:</span>
+                    <span class="value" id="v_fifaType"></span>
+                </div>
+                <div class="card-view-detail-item">
+                    <span class="label">Dátum pridania:</span>
+                    <span class="value" id="v_dateAdded"></span>
+                </div>
+                <div class="card-view-detail-item">
+                    <span class="label">Zbierky:</span>
+                    <span class="value" id="v_collections"></span>
+                </div>
+                <div class="card-view-detail-item" style="border-top: 2px solid var(--accent-color); padding-top: 10px; margin-top: 10px;">
+                    <span class="label" style="color: var(--accent-color); font-size: 1.1rem;">Cena:</span>
+                    <span class="value" id="v_price" style="color: var(--accent-color); font-size: 1.1rem;"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="settingsModal" class="modal">
         <div class="modal-content" style="max-width: 550px;">
             <span class="close-modal" onclick="closeModal('settingsModal')">&times;</span>
@@ -1516,8 +1602,8 @@
                 item.innerHTML = `<img src="${card.image || ''}" alt="Card Visual" onerror="this.style.display='none'">`;
                 item.onclick = () => {
                     wasAlbumOpenBeforeDetail = true;
-                    closeAlbumView();
-                    viewDetails(card.id);
+                    // Namiesto klasického detailu s možnosťou úpravy otvárame nové dedikované okno len pre náhľad a popis
+                    viewCardOnlyPreview(card.id);
                 };
                 grid.appendChild(item);
             });
@@ -1705,7 +1791,7 @@
             window.history.back();
             setTimeout(() => { 
                 blockPopstateEvent = false; 
-                if (id === 'detailModal') {
+                if (id === 'detailModal' || id === 'cardViewModal') {
                     checkAndReturnToAlbum();
                 }
             }, 50);
@@ -2252,6 +2338,34 @@
             renderApp();
         }
 
+        // NOVÉ DEDIKOVANÉ MODÁLNE OKNO IBA PRE PREZENTÁCIU A POPIS KARTY BEZ EDITÁCIE
+        function viewCardOnlyPreview(id) {
+            const card = cards.find(c => c.id === id);
+            if(!card) return;
+
+            document.getElementById('v_title').innerText = `${card.firstName} ${card.lastName}`;
+            document.getElementById('v_cardPreview').src = card.image;
+            document.getElementById('v_fullName').innerText = `${card.firstName} ${card.lastName}`.trim() || 'Nezadané';
+            document.getElementById('v_team').innerText = card.team || 'Nezadané';
+            document.getElementById('v_league').innerText = card.league || getLeagueForTeam(card.team, "") || 'Nezadané';
+            document.getElementById('v_set').innerText = card.set || 'Nezadané';
+            document.getElementById('v_manufacturer').innerText = card.manufacturer || 'Nezadané';
+            document.getElementById('v_year').innerText = card.year || 'Nezadané';
+            document.getElementById('v_cardImgSymbol').innerText = card.cardImgSymbol || 'Nezadané';
+            document.getElementById('v_insert').innerText = card.insert || 'Žiadny (Base)';
+            document.getElementById('v_fifaType').innerText = card.fifaType || 'Žiadne';
+            document.getElementById('v_dateAdded').innerText = card.dateAdded || 'Nezadaný';
+            document.getElementById('v_price').innerText = `${card.price.toFixed(2)} €`;
+
+            let collsText = 'Žiadne';
+            if (card.collections && card.collections.length > 0) {
+                collsText = card.collections.join(', ');
+            }
+            document.getElementById('v_collections').innerText = collsText;
+
+            openModal('cardViewModal');
+        }
+
         function viewDetails(id) {
             const card = cards.find(c => c.id === id);
             if(!card) return;
@@ -2341,7 +2455,7 @@
         }
 
         async function removeCollectionFromCard(cardId, collectionName) {
-            const card = cards.find(c => c.id === cardId);
+            const card = cards.find(c => cardId === cardId);
             if (card && card.collections) {
                 card.collections = card.collections.filter(c => c !== collectionName);
                 await saveToLocalStorage();
@@ -2638,7 +2752,8 @@
                         e.stopPropagation();
                         handleCardClickInSelection(card.id);
                     } else {
-                        if (!e.target.classList.contains('clickable-attr') && !e.target.classList.contains('fav-icon')) {
+                        // Ak sme neklikli na nič interaktívne ani na srdiečko, a ani na samotný obrázok hráča (lebo obrázok má vlastný handler na úpravu)
+                        if (!e.target.classList.contains('clickable-attr') && !e.target.classList.contains('fav-icon') && !e.target.classList.contains('card-img-thumb')) {
                             viewDetails(card.id);
                         }
                     }
@@ -2651,6 +2766,7 @@
                 const favClass = card.favorite ? 'fav-icon active' : 'fav-icon';
                 const favEl = `<span class="${favClass}" onclick="toggleFavorite('${card.id}', event)">♥</span>`;
 
+                // NOVÁ POŽIADAVKA: Kliknutie na obrázok otvorí úpravu, kliknutie mimo obrázka (meno, klub, set) otvorí prefiltrovaný album
                 let imgEl = `<img class="card-img-thumb" src="${card.image || ''}" alt="Card" onclick="event.stopPropagation(); viewDetails('${card.id}');">`;
                 
                 let fifaBadgeHtml = "";
@@ -2676,11 +2792,14 @@
                     <div class="card-info-text">
                         <div>
                             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
+                                <!-- KLIKNUTIE NA MENO HRÁČA: Otvorí album s jeho kartičkami -->
                                 <strong class="clickable-attr" onclick="event.stopPropagation(); filterAttributeAndOpenAlbum('name', '${card.firstName} ${card.lastName}');">${card.firstName} ${card.lastName}</strong>
                             </div>
+                            <!-- KLIKNUTIE NA KLUB: Otvorí album klubu -->
                             <div class="clickable-attr" onclick="event.stopPropagation(); filterAttributeAndOpenAlbum('team', '${card.team}');">${card.team}</div>
                             <div style="font-size:0.85rem; color:#aaa;">
-                                <span class="clickable-attr" onclick="event.stopPropagation(); filterAttributeAndOpenAlbum('combo-set', '${comboSetKey}');" style="text-decoration:underline; color:var(--accent-color); font-weight:600;">${card.manufacturer} ${card.set}</span>
+                                <!-- KLIKNUTIE NA SET: Otvorí album pre daný set (iba všeobecný názov setu bez sezóny/manufaktúry pre lepšiu filtráciu podľa priania) -->
+                                <span class="clickable-attr" onclick="event.stopPropagation(); filterAttributeAndOpenAlbum('set', '${card.set}');" style="text-decoration:underline; color:var(--accent-color); font-weight:600;">${card.manufacturer} ${card.set}</span>
                             </div>
                             <div style="font-size:0.85rem; color:#aaa;">${card.year}</div>
                             <div style="font-size:0.85rem; color:#bbb;">
@@ -2800,7 +2919,7 @@
                         
                         const isHracType = ["Bez označenia", "Legenda", "Ultra Legenda", "Kvalitný hráč", "Talent"].includes(typeLabel);
                         const isTrenerType = ["Manažér"].includes(typeLabel);
-                        const isFifaType = ["Logo", "Lopta", "Trofej", "Štadión", "Woman"].includes(typeLabel) || (!!card.fifaType && !isHracType && !isTrenerType);
+                        const isFifaType = ["Logo", "Lopta", "Trofej", "Štadión", "Woman"].includes(typeLabel) || (!!c.fifaType && !isHracType && !isTrenerType);
 
                         const belongsToHrac = !card.fifaType || isHracType;
                         const belongsToTrener = isTrenerType;
