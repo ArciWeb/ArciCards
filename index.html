@@ -550,6 +550,38 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.7);
             backdrop-filter: blur(10px);
         }
+
+        /* Špecifické štýly pre tagy zbierok v editovacom okne */
+        .modal-collections-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 6px;
+        }
+        .modal-collection-tag {
+            background: rgba(187, 134, 252, 0.15);
+            border: 1px solid rgba(187, 134, 252, 0.4);
+            color: var(--accent-color);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .modal-collection-tag button {
+            background: transparent;
+            border: none;
+            color: #cf6679;
+            padding: 0;
+            cursor: pointer;
+            font-size: 0.9rem;
+            box-shadow: none;
+        }
+        .modal-collection-tag button:hover {
+            transform: none;
+            filter: brightness(1.3);
+        }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Cinzel:wght@600&family=Playfair+Check:ital,wght@1,600&family=Playfair+Display:ital,wght@1,600&display=swap" rel="stylesheet">
 </head>
@@ -832,6 +864,24 @@
             <div class="form-group"><label>Číslo / Znak karty</label><input type="text" id="e_cardImgSymbol"></div>
             <div class="form-group"><label>Insert</label><input type="text" id="e_insert"></div>
             
+            <hr style="border-color:var(--border-color); margin:14px 0;">
+            
+            <!-- PRIDANÁ SEKCIA PRE MANAGEMENT ZBIEROK V DETAILE -->
+            <div class="form-group">
+                <label>📚 Zbierky karty</label>
+                <div class="modal-collections-list" id="e_collectionsList"></div>
+                <div style="display: flex; gap: 6px; margin-top: 8px;">
+                    <input type="text" id="e_newCollectionInput" placeholder="Pridať do zbierky..." style="flex: 1;">
+                    <button type="button" class="btn-primary" style="padding: 0 12px;" onclick="addCardToCollectionFromModal()">Pridať</button>
+                </div>
+            </div>
+
+            <!-- PRIDANÉ POLÍČKO PRE DÁTUM PRIDANIA -->
+            <div class="form-group">
+                <label>📅 Dátum pridania karty</label>
+                <input type="date" id="e_dateAdded">
+            </div>
+
             <hr style="border-color:var(--border-color); margin:14px 0;">
             <div class="form-group" style="flex-direction: row; align-items: center; gap: 10px; margin-bottom: 8px;">
                 <input type="checkbox" id="e_isFifa" style="width: 20px; height: 20px; cursor: pointer;" onchange="document.getElementById('e_fifaTypeContainer').style.display = this.checked ? 'flex' : 'none'">
@@ -1559,7 +1609,7 @@
 
             } catch (err) {
                 console.error(err);
-                alert('Chyba pri analýze cez Groq API. Skontrolujte konzolu a API kľúč.');
+                alert('Chyba pri analýze cez Groq API. Skontrolujte konzolu and API kľúč.');
             } finally {
                 document.getElementById('aiLoading').style.display = 'none';
             }
@@ -1580,7 +1630,7 @@
             }
 
             document.getElementById('bulkAiLoading').style.display = 'block';
-            document.getElementById('bulkStatusText').innerText = "Načítavam and optimalizujem súbory...";
+            document.getElementById('bulkStatusText').innerText = "Načítavam a optimalizujem súbory...";
 
             try {
                 bulkCardImages = [];
@@ -1764,6 +1814,9 @@
                 if (!fifaTag) fifaTag = "FIFA";
             }
 
+            // AUTOMATICKÝ DÁTUM PRE HROMADNÉ PRIDÁVANIE
+            const todayStr = new Date().toISOString().split('T')[0];
+
             const currentCard = bulkCardImages[bulkCurrentCardIndex];
             const newCard = {
                 id: (Date.now() + bulkCurrentCardIndex).toString(),
@@ -1780,7 +1833,8 @@
                 image: currentCard.base64,
                 favorite: false,
                 fifaType: fifaTag,
-                collections: []
+                collections: [],
+                dateAdded: todayStr
             };
 
             cards.push(newCard);
@@ -1843,6 +1897,9 @@
                 if (!fifaTag) fifaTag = "FIFA";
             }
 
+            // AUTOMATICKÝ DÁTUM PRE KLASICKÉ PRIDÁVANIE
+            const todayStr = new Date().toISOString().split('T')[0];
+
             const newCard = {
                 id: Date.now().toString(),
                 firstName: firstName,
@@ -1858,7 +1915,8 @@
                 image: currentCardImageBase64,
                 favorite: false,
                 fifaType: fifaTag,
-                collections: []
+                collections: [],
+                dateAdded: todayStr
             };
 
             cards.push(newCard);
@@ -1887,6 +1945,53 @@
             renderApp();
         }
 
+        // FUNKCIA PRE VYKRESLENIE TAGOV ZBIEROK V MODÁLNOM OKNE
+        function renderModalCollections(card) {
+            const container = document.getElementById('e_collectionsList');
+            container.innerHTML = '';
+            if (card.collections && card.collections.length > 0) {
+                card.collections.forEach(coll => {
+                    const tag = document.createElement('div');
+                    tag.className = 'modal-collection-tag';
+                    tag.innerHTML = `<span>${coll}</span><button type="button" onclick="removeCardFromCollectionInModal('${card.id}', '${coll}')">&times;</button>`;
+                    container.appendChild(tag);
+                });
+            } else {
+                container.innerHTML = '<span style="font-size:0.9rem; color:#888; font-style:italic;">Karta nie je v žiadnej zbierke</span>';
+            }
+        }
+
+        // RUČNÉ ODSTRÁNENIE ZO ZBIERKY PRIAMO V MODÁLNOM OKNE
+        async function removeCardFromCollectionInModal(cardId, collectionName) {
+            const card = cards.find(c => c.id === cardId);
+            if (card && card.collections) {
+                card.collections = card.collections.filter(c => c !== collectionName);
+                await saveToLocalStorage();
+                renderModalCollections(card);
+                renderApp();
+            }
+        }
+
+        // RUČNÉ PRIDANIE DO ZBIERKY PRIAMO V MODÁLNOM OKNE
+        async function addCardToCollectionFromModal() {
+            const id = document.getElementById('edit_id').value;
+            const card = cards.find(c => c.id === id);
+            const input = document.getElementById('e_newCollectionInput');
+            const cleanName = input.value.trim();
+            
+            if (!cleanName) return;
+            if (!card) return;
+
+            if (!card.collections) card.collections = [];
+            if (!card.collections.includes(cleanName)) {
+                card.collections.push(cleanName);
+                await saveToLocalStorage();
+                renderModalCollections(card);
+                renderApp();
+            }
+            input.value = '';
+        }
+
         function viewDetails(id) {
             const card = cards.find(c => c.id === id);
             if(!card) return;
@@ -1903,6 +2008,13 @@
             document.getElementById('e_cardImgSymbol').value = card.cardImgSymbol;
             document.getElementById('e_insert').value = card.insert || '';
             document.getElementById('e_price').value = card.price;
+
+            // REFRESH TAGOV ZBIEROK V MODÁLI
+            renderModalCollections(card);
+            document.getElementById('e_newCollectionInput').value = '';
+
+            // DOPLNENIE DÁTUMU PRE STARÉ/NOVÉ KARTY
+            document.getElementById('e_dateAdded').value = card.dateAdded || '';
 
             if (card.fifaType) {
                 document.getElementById('e_isFifa').checked = true;
@@ -1942,6 +2054,9 @@
                 card.cardImgSymbol = document.getElementById('e_cardImgSymbol').value;
                 card.insert = document.getElementById('e_insert').value;
                 card.price = parseFloat(document.getElementById('e_price').value) || 0;
+                
+                // ULOŽENIE UPRAVENÉHO DÁTUMU
+                card.dateAdded = document.getElementById('e_dateAdded').value;
 
                 if (document.getElementById('e_isFifa').checked) {
                     const sel = document.getElementById('e_fifaTypeSelect').value;
@@ -1989,8 +2104,9 @@
                 }
 
                 if(primaryKey === 'dateAdded') {
-                    valA = parseFloat(a.id) || 0;
-                    valB = parseFloat(b.id) || 0;
+                    // AK RADÍME PODĽA ZADANÉHO DÁTUMU, POUŽIJEME HO. AK NIE JE, SPADNE NA ID (ČAS VYTVORENIA)
+                    valA = a.dateAdded ? a.dateAdded : (parseFloat(a.id) || 0).toString();
+                    valB = b.dateAdded ? b.dateAdded : (parseFloat(b.id) || 0).toString();
                 }
 
                 if (valA < valB) return isDesc ? 1 : -1;
@@ -2137,7 +2253,7 @@
             let paginatedCards = filteredCards;
             let totalPages = 1;
 
-            if (pageSizeValue !== 'all') {
+            if (pageSizeValue !== 'all' || totalItems <= parseInt(pageSizeValue)) {
                 const pageSize = parseInt(pageSizeValue);
                 totalPages = Math.ceil(filteredCards.length / pageSize);
                 
