@@ -541,33 +541,32 @@
             font-weight: bold;
         }
 
-        /* UPRAVENÝ ŠTÝL PRE KRAJŠIE SADY V ALBUME */
+        /* ŠTÝLOVANIE STRUKTÚRY SÁD - UPRAVENÉ NA 4 V RIADKU, OKIENKA, MALÝ NÁZOV, VEĽKÝ POČET KARIET */
         .album-sets-list {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-            gap: 10px;
-            justify-content: center;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
             margin-top: 12px;
-            max-width: 800px;
+            width: 100%;
+            max-width: 600px;
             margin-left: auto;
             margin-right: auto;
-            background: rgba(0,0,0,0.25);
-            padding: 12px;
-            border-radius: 12px;
+            background: rgba(0,0,0,0.2);
+            padding: 10px;
+            border-radius: 8px;
             border: 1px solid var(--border-color);
+            box-sizing: border-box;
         }
-        
-        @media (min-width: 650px) {
+        @media(max-width: 500px) {
             .album-sets-list {
-                grid-template-columns: repeat(4, 1fr); /* Minimálne 4 v jednom riadku na PC/stredných diplejoch */
+                grid-template-columns: repeat(2, 1fr);
             }
         }
-
         .album-set-badge {
-            background: rgba(255, 234, 67, 0.04);
+            background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--border-color);
-            padding: 10px 8px;
-            border-radius: 8px;
+            padding: 8px;
+            border-radius: 6px;
             cursor: pointer;
             color: var(--text-color);
             text-align: center;
@@ -575,33 +574,35 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            gap: 4px;
             transition: all 0.2s ease;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            box-sizing: border-box;
+            min-height: 70px;
         }
-        .album-set-badge:hover, .album-set-badge.active-badge {
+        .album-set-badge.active-set-badge {
+            border-color: var(--accent-color) !important;
+            background: rgba(255, 234, 67, 0.1) !important;
+            box-shadow: 0 0 8px rgba(255, 234, 67, 0.2);
+        }
+        .album-set-badge:hover {
             border-color: var(--accent-color);
-            background: rgba(255, 234, 67, 0.08);
-            box-shadow: 0 0 10px rgba(255, 234, 67, 0.15);
-            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.09);
         }
-        
-        .album-set-badge .set-title-small {
-            font-size: 0.7rem;
-            color: #aaa;
-            line-height: 1.2;
+        .album-set-badge-name {
+            font-size: 0.65rem;
+            opacity: 0.75;
+            line-height: 1.1;
+            margin-bottom: 4px;
             word-break: break-word;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
-        
-        .album-set-badge .set-count-large {
-            font-size: 1.15rem;
-            font-weight: 800;
+        .album-set-badge-count {
+            font-size: 1.2rem;
+            font-weight: 900;
             color: var(--accent-color);
-            text-shadow: 0 0 5px rgba(255, 255, 255, 0.1);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
         }
 
         /* Vizuálny štýl pre vycentrované import/export tlačidlá a sloty */
@@ -808,8 +809,9 @@
         <button class="btn-secondary" onclick="cancelBulkSelection()">Zrušiť</button>
     </div>
 
+    <!-- REŽIM CELÉHO ALBUMU (TLAČIDLO CLOSE TERAZ KOMPLETNE PREČISTÍ PAMÄŤ STAVU) -->
     <div id="albumViewOverlay" class="album-view-overlay">
-        <span class="album-close-btn" onclick="closeAlbumView()">&times;</span>
+        <span class="album-close-btn" onclick="wipeAlbumMemoryAndClose()">&times;</span>
         <h2 id="albumViewTitle" style="text-align: center; text-transform: uppercase; margin-bottom: 10px; color: var(--accent-color);">📖 Kompletný Digitálny Album</h2>
         
         <div class="album-toggle-bar">
@@ -1151,7 +1153,7 @@
         let lastAlbumSubset = null;
         let lastAlbumTitle = "";
         let currentAlbumSubMode = 'all'; // 'all' alebo 'sets'
-        let selectedSetKeyInAlbum = null; // Uchováva aktuálne zvolenú sadu v albume
+        let lastSelectedSetBadgeKey = null; // Pamätá si aktívnu sadu v albume
 
         // Časový zámok pre tlačidlo späť
         let lastBackPressTime = 0;
@@ -1388,14 +1390,17 @@
             document.body.style.overflow = 'hidden'; 
             window.history.pushState({ type: 'album' }, '');
 
-            // Ak sa vraciame do albumu (wasAlbumOpenBeforeDetail bolo true), zachováme posledný podrežim a sadu
-            if (wasAlbumOpenBeforeDetail) {
-                switchAlbumSubMode(currentAlbumSubMode);
-            } else {
-                currentAlbumSubMode = 'all';
-                selectedSetKeyInAlbum = null;
-                switchAlbumSubMode('all');
-            }
+            switchAlbumSubMode(currentAlbumSubMode);
+        }
+
+        // Tlačidlo zavrieť album teraz kompletne prečistí pamäť stavu, kde bol naposledy otvorený
+        function wipeAlbumMemoryAndClose() {
+            lastAlbumSubset = null;
+            lastAlbumTitle = "";
+            currentAlbumSubMode = 'all';
+            lastSelectedSetBadgeKey = null;
+            wasAlbumOpenBeforeDetail = false;
+            closeAlbumView();
         }
 
         function switchAlbumSubMode(mode) {
@@ -1405,20 +1410,19 @@
 
             const setsContainer = document.getElementById('albumSetsListContainer');
             if (mode === 'sets') {
-                setsContainer.style.display = 'grid'; // Prepnuté na grid pre krajšie rozloženie
+                setsContainer.style.display = 'grid';
                 renderAlbumSetsBadges();
             } else {
                 setsContainer.style.display = 'none';
-                // Vykreslíme základnú mriežku (buď filter subset alebo komplet)
                 renderAlbumGridItems(lastAlbumSubset || cards);
             }
         }
 
+        // Zmena vizuálneho spracovania sád: okienka (4 v riadku), malý názov, veľké číslo počtu kariet
         function renderAlbumSetsBadges() {
             const container = document.getElementById('albumSetsListContainer');
             container.innerHTML = '';
 
-            // Extrakcia unikátnych sád a ich počtov kariet
             const setsMap = {};
             cards.forEach(c => {
                 const manuf = (c.manufacturer || "Neznáma manufaktúra").trim();
@@ -1434,30 +1438,28 @@
             const sortedKeys = Object.keys(setsMap).sort();
 
             if (sortedKeys.length === 0) {
-                container.innerHTML = '<div style="color:#aaa; font-size:0.85rem; grid-column: 1/-1; text-align: center;">Žiadne sady k dispozícii</div>';
+                container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#aaa; font-size:0.85rem;">Žiadne sady k dispozícii</div>';
                 renderAlbumGridItems([]);
                 return;
             }
 
-            // Vytvoríme vylepšené boxy sád
             sortedKeys.forEach((key) => {
+                const setCardsCount = setsMap[key].length;
                 const badge = document.createElement('div');
                 badge.className = 'album-set-badge';
-                if (selectedSetKeyInAlbum === key) {
-                    badge.classList.add('active-badge');
+                if (lastSelectedSetBadgeKey === key) {
+                    badge.classList.add('active-set-badge');
                 }
                 
-                // Formátovanie: Názov sady malým písmom, počet kariet väčším písmom
                 badge.innerHTML = `
-                    <span class="set-title-small">${key}</span>
-                    <span class="set-count-large">${setsMap[key].length}</span>
+                    <span class="album-set-badge-name">${key}</span>
+                    <span class="album-set-badge-count">${setCardsCount}</span>
                 `;
                 
                 badge.onclick = () => {
-                    selectedSetKeyInAlbum = key;
-                    // Odstránime active class zo všetkých a pridáme kliknutému
-                    document.querySelectorAll('.album-set-badge').forEach(b => b.classList.remove('active-badge'));
-                    badge.classList.add('active-badge');
+                    lastSelectedSetBadgeKey = key;
+                    document.querySelectorAll('.album-set-badge').forEach(b => b.classList.remove('active-set-badge'));
+                    badge.classList.add('active-set-badge');
                     
                     const setCards = [...setsMap[key]];
                     const sortedSetCards = sortCardsByImgSymbolStrict(setCards);
@@ -1466,18 +1468,15 @@
                 container.appendChild(badge);
             });
 
-            // Ak už máme zapamätanú sadu, načítame ju. Ak nie, automaticky klikneme prvú sadu.
+            // Obnovenie načítania alebo predvolené načítanie prvej sady
             if (sortedKeys.length > 0) {
-                const activeKey = selectedSetKeyInAlbum && setsMap[selectedSetKeyInAlbum] ? selectedSetKeyInAlbum : sortedKeys[0];
-                selectedSetKeyInAlbum = activeKey;
-                
-                // Nájdeme korektný badge a vizuálne ho zvýrazníme
-                const idx = sortedKeys.indexOf(activeKey);
-                if (container.children[idx]) {
-                    container.children[idx].classList.add('active-badge');
+                let keyToLoad = sortedKeys[0];
+                if (lastSelectedSetBadgeKey && sortedKeys.includes(lastSelectedSetBadgeKey)) {
+                    keyToLoad = lastSelectedSetBadgeKey;
+                } else {
+                    lastSelectedSetBadgeKey = keyToLoad;
                 }
-                
-                const sortedSetCards = sortCardsByImgSymbolStrict([...setsMap[activeKey]]);
+                const sortedSetCards = sortCardsByImgSymbolStrict([...setsMap[keyToLoad]]);
                 renderAlbumGridItems(sortedSetCards);
             }
         }
@@ -1491,7 +1490,7 @@
                 const isNumA = /^\d+$/.test(symbolA);
                 const isNumB = /^\d+$/.test(symbolB);
 
-                // Ak jedno nie je číslo a druhé je, tak to, čo nie je číslo, ide navrch
+                // Ak jedno nie je číslo a druhé je, tak to, čo nie je číslo, inde navrch
                 if (!isNumA && isNumB) return -1;
                 if (isNumA && !isNumB) return 1;
 
@@ -1517,8 +1516,7 @@
                 item.innerHTML = `<img src="${card.image || ''}" alt="Card Visual" onerror="this.style.display='none'">`;
                 item.onclick = () => {
                     wasAlbumOpenBeforeDetail = true;
-                    // Nezatvárame album úplne, iba skryjeme overlay bez zničenia stavu
-                    document.getElementById('albumViewOverlay').style.display = 'none';
+                    closeAlbumView();
                     viewDetails(card.id);
                 };
                 grid.appendChild(item);
@@ -1528,13 +1526,6 @@
         function closeAlbumView() {
             document.getElementById('albumViewOverlay').style.display = 'none';
             document.body.style.overflow = ''; 
-            
-            // Pri manuálnom zatvorení albumu (klik na krížik) vymažeme pamäť stavu a sady
-            wasAlbumOpenBeforeDetail = false;
-            lastAlbumSubset = null;
-            lastAlbumTitle = "";
-            selectedSetKeyInAlbum = null;
-            currentAlbumSubMode = 'all';
         }
 
         function filterAttributeAndOpenAlbum(type, value) {
@@ -1570,7 +1561,7 @@
 
         function checkAndReturnToAlbum() {
             if (wasAlbumOpenBeforeDetail) {
-                // Keďže bol album otvorený pred detailom, znova ho otvoríme s pôvodným stavom sád/sub-módu
+                wasAlbumOpenBeforeDetail = false;
                 openAlbumView(lastAlbumSubset, lastAlbumTitle);
                 return true;
             }
@@ -1625,18 +1616,14 @@
             if (blockPopstateEvent) return;
 
             if (document.getElementById('albumViewOverlay').style.display === 'block') {
-                closeAlbumView();
+                wipeAlbumMemoryAndClose();
                 return;
             }
 
             if (openModalsStack.length > 0) {
                 const modalId = openModalsStack.pop();
                 document.getElementById(modalId).style.display = 'none';
-                
-                // Skontrolujeme návrat do albumu, ak to bola detail karta
-                if (modalId === 'detailModal') {
-                    checkAndReturnToAlbum();
-                }
+                checkAndReturnToAlbum();
                 return;
             }
 
@@ -1719,12 +1706,7 @@
             setTimeout(() => { 
                 blockPopstateEvent = false; 
                 if (id === 'detailModal') {
-                    // Ak sa zatvoril detail karty a predtým sme prišli z albumu, vrátime sa tam
-                    const returned = checkAndReturnToAlbum();
-                    if (!returned) {
-                        // Ak sme neprišli z albumu, uistíme sa, že je vymazaný stav
-                        wasAlbumOpenBeforeDetail = false;
-                    }
+                    checkAndReturnToAlbum();
                 }
             }, 50);
         }
@@ -2359,7 +2341,7 @@
         }
 
         async function removeCollectionFromCard(cardId, collectionName) {
-            const card = cards.find(c => cardId === card.id);
+            const card = cards.find(c => c.id === cardId);
             if (card && card.collections) {
                 card.collections = card.collections.filter(c => c !== collectionName);
                 await saveToLocalStorage();
@@ -2534,15 +2516,21 @@
                 if(selectedCardTypes.length > 0) {
                     let hasMatch = false;
                     
-                    const isExcludedFifaType = ["Legenda", "Ultra Legenda", "Kvalitný hráč"].includes(typeLabel);
-                    const behavesAsFifa = !!card.fifaType && !isExcludedFifaType && typeLabel !== "Manažér";
-                    const behavesAsPlayer = (!card.fifaType || isExcludedFifaType) && typeLabel !== "Manažér";
-                    const behavesAsManager = typeLabel === "Manažér";
+                    const isHracType = ["Bez označenia", "Legenda", "Ultra Legenda", "Kvalitný hráč", "Talent"].includes(typeLabel);
+                    const isTrenerType = ["Manažér"].includes(typeLabel);
+                    const isFifaType = ["Logo", "Lopta", "Trofej", "Štadión", "Woman"].includes(typeLabel) || (!!card.fifaType && !isHracType && !isTrenerType);
 
-                    if(selectedCardTypes.includes("FIFA") && (behavesAsFifa || isExcludedFifaType)) hasMatch = true;
-                    if(selectedCardTypes.includes("Hráč") && behavesAsPlayer) hasMatch = true;
-                    if(selectedCardTypes.includes("Manažér") && behavesAsManager) hasMatch = true;
+                    const belongsToHrac = !card.fifaType || isHracType;
+                    const belongsToTrener = isTrenerType;
+                    const belongsToFifa = isFifaType;
+
+                    if(selectedCardTypes.includes("Hráč") && belongsToHrac) hasMatch = true;
+                    if(selectedCardTypes.includes("Tréner") && belongsToTrener) hasMatch = true;
+                    if(selectedCardTypes.includes("FIFA") && belongsToFifa) hasMatch = true;
+                    
+                    if(selectedCardTypes.includes("Bez označenia") && !card.fifaType) hasMatch = true;
                     if(card.fifaType && selectedCardTypes.includes(typeLabel)) hasMatch = true;
+                    
                     if(!hasMatch) return false;
                 }
 
@@ -2554,7 +2542,6 @@
             filteredCards = sortCards(filteredCards, sortKey, sortDirection);
             updateFilterOptions(selectedCollections, selectedSetsCombo, selectedLeagues, selectedClubs, selectedManufs, selectedSets, selectedSeasons, selectedInserts, selectedCardTypes, query, onlyFav, onlyCharInNum, priceFrom, priceTo);
 
-            // --- FUNKCIA PRE DYNAMICKÉ STRÁŽENIE ZVÝRAZNENIA AKTÍVNYCH FILTROV NA LIŠTÁCH ---
             const refreshHeaderHighlight = (headerId, isActive) => {
                 const el = document.getElementById(headerId);
                 if(el) {
@@ -2811,15 +2798,21 @@
                     if(excludeKey !== 'cardtype' && selCardTypes.length > 0) {
                         let hasMatch = false;
                         
-                        const isExcludedFifaType = ["Legenda", "Ultra Legenda", "Kvalitný hráč"].includes(typeLabel);
-                        const behavesAsFifa = !!card.fifaType && !isExcludedFifaType && typeLabel !== "Manažér";
-                        const behavesAsPlayer = (!card.fifaType || isExcludedFifaType) && typeLabel !== "Manažér";
-                        const behavesAsManager = typeLabel === "Manažér";
+                        const isHracType = ["Bez označenia", "Legenda", "Ultra Legenda", "Kvalitný hráč", "Talent"].includes(typeLabel);
+                        const isTrenerType = ["Manažér"].includes(typeLabel);
+                        const isFifaType = ["Logo", "Lopta", "Trofej", "Štadión", "Woman"].includes(typeLabel) || (!!card.fifaType && !isHracType && !isTrenerType);
 
-                        if(selCardTypes.includes("FIFA") && (behavesAsFifa || isExcludedFifaType)) hasMatch = true;
-                        if(selCardTypes.includes("Hráč") && behavesAsPlayer) hasMatch = true;
-                        if(selCardTypes.includes("Manažér") && behavesAsManager) hasMatch = true;
+                        const belongsToHrac = !card.fifaType || isHracType;
+                        const belongsToTrener = isTrenerType;
+                        const belongsToFifa = isFifaType;
+
+                        if(selCardTypes.includes("Hráč") && belongsToHrac) hasMatch = true;
+                        if(selCardTypes.includes("Tréner") && belongsToTrener) hasMatch = true;
+                        if(selCardTypes.includes("FIFA") && belongsToFifa) hasMatch = true;
+                        
+                        if(selCardTypes.includes("Bez označenia") && !card.fifaType) hasMatch = true;
                         if(card.fifaType && selCardTypes.includes(typeLabel)) hasMatch = true;
+                        
                         if(!hasMatch) return false;
                     }
 
@@ -2848,21 +2841,18 @@
                     if (!countsMap[checkedVal]) countsMap[checkedVal] = 0;
                 });
 
-                // ŠPECIFICKÁ DYNAMICKÁ ŠTRUKTÚRA PRE FIFA KATEGÓRIE (VYLEPŠENÁ)
+                // SPECIFICKÁ DYNAMICKÁ STRUKTÚRA PRE FIFA KATEGÓRIE (HRÁČ, TRÉNER, FIFA AKO HLAVNÉ TAGY)
                 if (filterKey === 'cardtype') {
-                    // Tri hlavné nadradené kategórie na vrchu
-                    const topItems = ["Hráč", "Manažér", "FIFA"];
+                    const topItems = ["Hráč", "Tréner", "FIFA"];
                     
                     const isHracChecked = checkedArray.includes("Hráč");
-                    const isManagerChecked = checkedArray.includes("Manažér");
+                    const isTrenerChecked = checkedArray.includes("Tréner");
                     const isFifaChecked = checkedArray.includes("FIFA");
 
-                    // Podriadené tagy prislúchajúce výhradne pod hlavného Hráča (bývalé Bez označenia premenované na Hráč)
-                    const hracSubtypes = ["Hráč", "Legenda", "Ultra Legenda", "Kvalitný hráč", "Talent"];
-                    // Podriadené tagy prislúchajúce pod Manažéra
-                    const managerSubtypes = ["Manažér"];
+                    const hracSubtypes = ["Bez označenia", "Legenda", "Ultra Legenda", "Kvalitný hráč", "Talent"];
+                    const trenerSubtypes = ["Manažér"];
+                    const fifaSubtypes = ["Logo", "Lopta", "Trofej", "Štadión", "Woman"];
 
-                    // Vygenerujeme hlavné tri nadradené kategórie na vrchu
                     topItems.forEach(val => {
                         const count = countsMap[val] || 0;
                         if (count === 0 && !checkedArray.includes(val)) return;
@@ -2881,7 +2871,6 @@
                     separator.style.cssText = "border: 0; border-top: 1px solid var(--border-color); margin: 8px 0; opacity: 0.6;";
                     container.appendChild(separator);
 
-                    // Ostatné zostávajúce pod-kategórie zoradené podľa počtu kusov
                     const remainingItems = Object.keys(countsMap).filter(k => !topItems.includes(k)).sort((a, b) => {
                         return (countsMap[b] || 0) - (countsMap[a] || 0);
                     });
@@ -2891,17 +2880,15 @@
                         if (count === 0 && !checkedArray.includes(val)) return;
 
                         const isUnderHrac = hracSubtypes.includes(val);
-                        const isUnderManager = managerSubtypes.includes(val);
+                        const isUnderTrener = trenerSubtypes.includes(val);
+                        const isUnderFifa = !isUnderHrac && !isUnderTrener; 
 
-                        // Uplatnenie dynamickej hierarchickej logiky zobrazenia sub-tagov:
-                        // 1. Ak je zakliknutý len Hráč, skryjeme tie, čo nepatria pod Hráča
-                        if (isHracChecked && !isFifaChecked && !isManagerChecked && !isUnderHrac) return;
-                        // 2. Ak je zakliknutý len Manažér, skryjeme tie, čo nepatria pod Manažéra
-                        if (isManagerChecked && !isHracChecked && !isFifaChecked && !isUnderManager) return;
-                        // 3. Ak je zakliknutá len FIFA, skryjeme tie, čo patria pod Hráča alebo Manažéra
-                        if (isFifaChecked && !isHracChecked && !isManagerChecked && (isUnderHrac || isUnderManager)) return;
-                        
-                        // Zmiešané stavy (napr. Hráč + FIFA) automaticky prejdú a zobrazia ich spoločné typy
+                        // Ak je zakliknutá aspoň jedna hlavná kategória, skryjeme tie podkategórie, ktorých hlavný filter nie je vybraný
+                        if (isHracChecked || isTrenerChecked || isFifaChecked) {
+                            if (isUnderHrac && !isHracChecked) return;
+                            if (isUnderTrener && !isTrenerChecked) return;
+                            if (isUnderFifa && !isFifaChecked) return;
+                        }
 
                         const item = document.createElement('div');
                         item.className = 'filter-item';
@@ -3004,26 +2991,23 @@
                 const arr = [];
                 const typeLabel = c.fifaType ? c.fifaType : "";
                 
-                const isExcludedFifaType = ["Legenda", "Ultra Legenda", "Kvalitný hráč", "Talent"].includes(typeLabel);
-                const behavesAsFifa = !!c.fifaType && !isExcludedFifaType && typeLabel !== "Manažér";
-                const behavesAsPlayer = (!c.fifaType || isExcludedFifaType) && typeLabel !== "Manažér";
-                const behavesAsManager = typeLabel === "Manažér";
+                const isHracType = ["Bez označenia", "Legenda", "Ultra Legenda", "Kvalitný hráč", "Talent"].includes(typeLabel);
+                const isTrenerType = ["Manažér"].includes(typeLabel);
+                const isFifaType = ["Logo", "Lopta", "Trofej", "Štadión", "Woman"].includes(typeLabel) || (!!c.fifaType && !isHracType && !isTrenerType);
 
-                if (behavesAsFifa || isExcludedFifaType) {
+                if (isTrenerType) {
+                    arr.push("Tréner");
+                    arr.push(typeLabel);
+                } else if (isFifaType) {
                     arr.push("FIFA");
-                }
-                if (behavesAsPlayer) {
-                    arr.push("Hráč");
-                }
-                if (behavesAsManager) {
-                    arr.push("Manažér");
-                }
-
-                if (c.fifaType) {
-                    arr.push(c.fifaType);
+                    arr.push(typeLabel);
                 } else {
-                    // Pôvodný stav "Bez označenia" premenovaný natvrdo na "Hráč" podľa požiadaviek
                     arr.push("Hráč");
+                    if (!c.fifaType) {
+                        arr.push("Bez označenia");
+                    } else {
+                        arr.push(typeLabel);
+                    }
                 }
                 return arr;
             });
