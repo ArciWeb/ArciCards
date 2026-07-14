@@ -699,44 +699,6 @@
             z-index: 9999;
             box-shadow: 0 10px 30px rgba(0,0,0,0.7);
             backdrop-filter: blur(10px);
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        /* Nové tlačidlo a dropdown menu pre hromadnú úpravu */
-        .bulk-edit-container {
-            position: relative;
-            display: inline-block;
-        }
-        .bulk-edit-dropdown {
-            display: none;
-            position: absolute;
-            bottom: 110%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #1e1e1e;
-            border: 1px solid var(--accent-color);
-            border-radius: 8px;
-            padding: 8px 0;
-            min-width: 180px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            z-index: 10000;
-        }
-        .bulk-edit-dropdown.show {
-            display: block;
-        }
-        .bulk-edit-dropdown-item {
-            padding: 8px 16px;
-            color: #fff;
-            cursor: pointer;
-            font-size: 0.9rem;
-            text-align: left;
-            font-weight: 600;
-            transition: background 0.2s;
-        }
-        .bulk-edit-dropdown-item:hover {
-            background: var(--accent-color);
-            color: #000;
         }
 
         /* Pomocný zoznam pre aktívne zbierky v detaile karty */
@@ -946,22 +908,10 @@
     
     <div class="pagination-container" id="paginationContainer"></div>
 
-    <!-- Akčná spodná lišta pre hromadnú správu označených položiek do zbierok (Pridaná hromadná úprava) -->
+    <!-- Akčná spodná lišta pre hromadnú správu označených položiek do zbierok -->
     <div id="collectionActionBar" class="collection-action-bar">
         <span id="collectionSelectedCount" style="font-weight: bold; color: var(--accent-color);">Označené: 0 kariet</span>
         <button class="btn-primary" onclick="promptCreateOrAddToCollection()">Vytvoriť zbierku</button>
-        <div class="bulk-edit-container">
-            <button class="btn-secondary" id="bulkEditBtn" onclick="toggleBulkEditDropdown(event)">Hromadne upraviť ⚙️</button>
-            <div class="bulk-edit-dropdown" id="bulkEditDropdown">
-                <div class="bulk-edit-dropdown-item" onclick="bulkEditField('team')">Názov klubu</div>
-                <div class="bulk-edit-dropdown-item" onclick="bulkEditField('league')">Názov ligy</div>
-                <div class="bulk-edit-dropdown-item" onclick="bulkEditField('set')">Názov setu</div>
-                <div class="bulk-edit-dropdown-item" onclick="bulkEditField('year')">Číslo sezóny</div>
-                <div class="bulk-edit-dropdown-item" onclick="bulkEditField('insert')">Insert</div>
-                <div class="bulk-edit-dropdown-item" onclick="bulkEditField('fifaType')">FIFA označenie</div>
-                <div class="bulk-edit-dropdown-item" onclick="bulkEditField('price')">Cena</div>
-            </div>
-        </div>
         <button class="btn-secondary" onclick="cancelBulkSelection()">Zrušiť</button>
     </div>
 
@@ -1105,7 +1055,7 @@
                     
                     <option value="custom">- Vlastný názov -</option>
                 </select>
-                <input type="text" id="f_fifaTypeCustom" placeholder="Zadaj vlastný typ (napr. Logo)" style="display: none;">
+                <input type="text" id="bs_fifaTypeCustom" placeholder="Zadaj vlastný typ (napr. Logo)" style="display: none;">
             </div>
 
             <hr style="border-color:var(--border-color); margin:18px 0;">
@@ -1403,7 +1353,7 @@
         let usedDetailsIndices = new Set();
         let bulkCurrentCardIndex = 0;
 
-        // Premenné pre správu hromadného výberu kartičiek (Zbierky & Hromadná úprava)
+        // Premenné pre správu hromadného výberu kartičiek (Zbierky)
         let isBulkSelectionMode = false;
         let selectedCardsIds = new Set();
         let longPressTimer = null;
@@ -1608,15 +1558,6 @@
         window.addEventListener('mousemove', e => {
             document.body.style.setProperty('--x', e.clientX + 'px');
             document.body.style.setProperty('--y', e.clientY + 'px');
-        });
-
-        // Event listener na zatvorenie hromadného dropdownu po kliknutí mimo neho
-        window.addEventListener('click', (e) => {
-            const dropdown = document.getElementById('bulkEditDropdown');
-            const btn = document.getElementById('bulkEditBtn');
-            if (dropdown && btn && !btn.contains(e.target) && !dropdown.contains(e.target)) {
-                dropdown.classList.remove('show');
-            }
         });
 
         function changeAppTheme(themeName) {
@@ -2070,7 +2011,6 @@
             isBulkSelectionMode = false;
             selectedCardsIds.clear();
             document.getElementById('collectionActionBar').style.display = 'none';
-            document.getElementById('bulkEditDropdown').classList.remove('show');
             document.querySelectorAll('.card-box').forEach(box => box.classList.remove('bulk-selected'));
         }
 
@@ -2117,60 +2057,6 @@
             cancelBulkSelection();
             resetPaginationAndRender();
             alert(`Karty boli úspešne priradené do zbierky: "${cleanName}"`);
-        }
-
-        // --- FUNKCIA PRE ZOBRAZENIE DROPDOWNU HROMADNEJ ÚPRAVY ---
-        function toggleBulkEditDropdown(event) {
-            event.stopPropagation();
-            const dropdown = document.getElementById('bulkEditDropdown');
-            dropdown.classList.toggle('show');
-        }
-
-        // --- FUNKCIA PRE VYKONANIE HROMADNEJ ÚPRAVY NA OZNAČENÝCH KARTÁCH ---
-        async function bulkEditField(fieldName) {
-            if (selectedCardsIds.size === 0) return;
-
-            let promptMsg = "";
-            let isPrice = (fieldName === 'price');
-            let isFifa = (fieldName === 'fifaType');
-
-            if (fieldName === 'team') promptMsg = "Zadaj nový názov klubu pre všetky označené karty:";
-            else if (fieldName === 'league') promptMsg = "Zadaj nový názov ligy pre všetky označené karty:";
-            else if (fieldName === 'set') promptMsg = "Zadaj nový názov setu pre všetky označené karty:";
-            else if (fieldName === 'year') promptMsg = "Zadaj nové číslo sezóny (napr. 2023-24) pre všetky označené karty:";
-            else if (fieldName === 'insert') promptMsg = "Zadaj nový insert pre všetky označené karty (ak chcete vymazať, nechajte prázdne):";
-            else if (fieldName === 'fifaType') promptMsg = "Zadaj nové FIFA označenie pre všetky označené karty (napr. Hráč, Ženy, Manažér, Logo, Lopta, Trofej, Štadión, World Cup, Legenda, Ultra Legenda, Kvalitný hráč, Talent. Pre zrušenie nechajte prázdne):";
-            else if (fieldName === 'price') promptMsg = "Zadaj novú cenu v € pre všetky označené karty:";
-
-            const userValue = prompt(promptMsg);
-            if (userValue === null) return; // Používateľ zrušil akciu
-
-            let cleanValue = userValue.trim();
-
-            cards.forEach(card => {
-                if (selectedCardsIds.has(card.id)) {
-                    if (isPrice) {
-                        card.price = parseFloat(cleanValue) || 0;
-                    } else if (isFifa) {
-                        if (cleanValue === "") {
-                            delete card.fifaType;
-                        } else {
-                            card.fifaType = cleanValue;
-                        }
-                    } else {
-                        card[fieldName] = cleanValue;
-                        // Ak sme upravovali klub, automaticky prepočítame ligu, ak nie je zadaná ručne
-                        if (fieldName === 'team') {
-                            card.league = getLeagueForTeam(cleanValue, card.league);
-                        }
-                    }
-                }
-            });
-
-            await saveToLocalStorage();
-            cancelBulkSelection();
-            resetPaginationAndRender();
-            alert("Úspešne prebehla hromadná úprava označených kartičiek!");
         }
 
         function toggleFilter(id) {
@@ -2483,7 +2369,7 @@
             let fifaTag = "";
             if (document.getElementById('bs_isFifa').checked) {
                 const sel = document.getElementById('bs_fifaTypeSelect').value;
-                fifaTag = (sel === 'custom') ? document.getElementById('f_fifaTypeCustom').value.trim() : sel;
+                fifaTag = (sel === 'custom') ? document.getElementById('bs_fifaTypeCustom').value.trim() : sel;
                 if (!fifaTag) fifaTag = "FIFA";
             }
 
@@ -2676,7 +2562,7 @@
             const card = cards.find(c => c.id === id);
             if(!card) return;
 
-            document.getElementById('vm_title').innerText = "Prezeranie Kartu";
+            document.getElementById('vm_title').innerText = "Prezeranie Karty";
             document.getElementById('vm_cardPreview').src = card.image;
             document.getElementById('vm_fullName').innerText = `${card.firstName} ${card.lastName}`.trim() || 'Nezadané';
             document.getElementById('vm_team').innerText = card.team || 'Nezadané';
@@ -2819,7 +2705,7 @@
         }
 
         async function removeCollectionFromCard(cardId, collectionName) {
-            const card = cards.find(c => cardId === card.id);
+            const card = cards.find(c => c.id === cardId);
             if (card && card.collections) {
                 card.collections = card.collections.filter(c => c !== collectionName);
                 await saveToLocalStorage();
