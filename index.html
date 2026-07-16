@@ -694,11 +694,51 @@
             border-radius: 12px;
             padding: 12px 24px;
             display: none;
+            flex-direction: column;
             align-items: center;
-            gap: 16px;
+            gap: 10px;
             z-index: 9999;
             box-shadow: 0 10px 30px rgba(0,0,0,0.7);
             backdrop-filter: blur(10px);
+        }
+
+        .collection-action-bar-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .bulk-edit-menu-container {
+            display: none;
+            width: 100%;
+            border-top: 1px solid var(--border-color);
+            padding-top: 10px;
+            margin-top: 5px;
+        }
+
+        .bulk-edit-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+        }
+
+        .bulk-edit-options button {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border-color);
+            color: #fff;
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .bulk-edit-options button:hover {
+            background: var(--accent-color);
+            color: #000;
+            border-color: var(--accent-color);
         }
 
         /* Pomocný zoznam pre aktívne zbierky v detaile karty */
@@ -908,11 +948,25 @@
     
     <div class="pagination-container" id="paginationContainer"></div>
 
-    <!-- Akčná spodná lišta pre hromadnú správu označených položiek do zbierok -->
+    <!-- Akčná spodná lišta pre hromadnú správu označených položiek do zbierok (AKTUALIZOVANÁ O HROMADNÚ ÚPRAVU ATRIBÚTOV) -->
     <div id="collectionActionBar" class="collection-action-bar">
-        <span id="collectionSelectedCount" style="font-weight: bold; color: var(--accent-color);">Označené: 0 kariet</span>
-        <button class="btn-primary" onclick="promptCreateOrAddToCollection()">Vytvoriť zbierku</button>
-        <button class="btn-secondary" onclick="cancelBulkSelection()">Zrušiť</button>
+        <div class="collection-action-bar-row">
+            <span id="collectionSelectedCount" style="font-weight: bold; color: var(--accent-color);">Označené: 0 kariet</span>
+            <button class="btn-primary" onclick="promptCreateOrAddToCollection()">Vytvoriť zbierku</button>
+            <button class="btn-secondary" onclick="toggleBulkEditMenu()">Hromadne upraviť</button>
+            <button class="btn-secondary" onclick="cancelBulkSelection()">Zrušiť</button>
+        </div>
+        <div id="bulkEditMenuContainer" class="bulk-edit-menu-container">
+            <div class="bulk-edit-options">
+                <button onclick="promptBulkEditField('team')">Názov klubu</button>
+                <button onclick="promptBulkEditField('league')">Názov ligy</button>
+                <button onclick="promptBulkEditField('set')">Názov setu</button>
+                <button onclick="promptBulkEditField('year')">Číslo sezóny</button>
+                <button onclick="promptBulkEditField('insert')">Insert</button>
+                <button onclick="promptBulkEditField('fifaType')">FIFA označenie</button>
+                <button onclick="promptBulkEditField('price')">Cenu</button>
+            </div>
+        </div>
     </div>
 
     <!-- REŽIM CELÉHO ALBUMU -->
@@ -1358,6 +1412,9 @@
         let selectedCardsIds = new Set();
         let longPressTimer = null;
 
+        // Premenné pre správu hromadnej úpravy
+        let isBulkEditMenuOpen = false;
+
         // Pamäťové premenné pre uloženie stavu albumu pred rozkliknutím detailu karty
         let wasAlbumOpenBeforeDetail = false;
         let lastAlbumSubset = null;
@@ -1564,6 +1621,89 @@
             document.body.classList.remove('theme-golden', 'theme-premium', 'theme-bluemoon', 'theme-standard');
             document.body.classList.add('theme-' + themeName);
             localStorage.setItem('arcicards_theme', themeName);
+        }
+
+        // FUNKCIE PRE HROMADNÚ ÚPRAVU ATRIBÚTOV
+        function toggleBulkEditMenu() {
+            const container = document.getElementById('bulkEditMenuContainer');
+            if (isBulkEditMenuOpen) {
+                container.style.display = 'none';
+                isBulkEditMenuOpen = false;
+            } else {
+                container.style.display = 'block';
+                isBulkEditMenuOpen = true;
+            }
+        }
+
+        async function promptBulkEditField(fieldName) {
+            if (selectedCardsIds.size === 0) return;
+
+            let promptMsg = "";
+            let isFifaField = false;
+            let isPriceField = false;
+
+            if (fieldName === 'team') promptMsg = "Zadaj nový názov klubu pre všetky označené karty:";
+            else if (fieldName === 'league') promptMsg = "Zadaj nový názov ligy pre všetky označené karty:";
+            else if (fieldName === 'set') promptMsg = "Zadaj nový názov setu pre všetky označené karty:";
+            else if (fieldName === 'year') promptMsg = "Zadaj nové číslo sezóny (napr. 2023-24) pre všetky označené karty:";
+            else if (fieldName === 'insert') promptMsg = "Zadaj názov insertu pre všetky označené karty (ak chceš zmazať insert, nechaj prázdne):";
+            else if (fieldName === 'fifaType') isFifaField = true;
+            else if (fieldName === 'price') isPriceField = true;
+
+            let newValue = "";
+
+            if (isFifaField) {
+                const options = ["Hráč", "Ženy", "Manažér", "Logo", "Lopta", "Trofej", "Štadión", "World Cup", "Legenda", "Ultra Legenda", "Kvalitný hráč", "Talent", "Zrušiť označenie FIFA"];
+                const choice = prompt("Vyber FIFA označenie z možností (zadaj presný názov):\n\n" + options.join(", "));
+                if (choice === null) return;
+                const cleanChoice = choice.trim();
+                if (cleanChoice === "Zrušiť označenie FIFA") {
+                    newValue = "";
+                } else if (options.includes(cleanChoice)) {
+                    newValue = cleanChoice;
+                } else {
+                    const customChoice = prompt("Zadaj vlastné FIFA označenie (alebo nechaj prázdne pre zrušenie):", cleanChoice);
+                    if (customChoice === null) return;
+                    newValue = customChoice.trim();
+                }
+            } else if (isPriceField) {
+                const priceInput = prompt("Zadaj novú cenu pre všetky označené karty (€):", "0.00");
+                if (priceInput === null) return;
+                const parsedPrice = parseFloat(priceInput);
+                if (isNaN(parsedPrice)) {
+                    alert("Neplatný formát ceny!");
+                    return;
+                }
+                newValue = parsedPrice;
+            } else {
+                const input = prompt(promptMsg);
+                if (input === null) return;
+                newValue = input.trim();
+            }
+
+            // Vykonanie hromadnej úpravy v poli kariet
+            cards.forEach(card => {
+                if (selectedCardsIds.has(card.id)) {
+                    if (fieldName === 'price') {
+                        card.price = newValue;
+                    } else if (fieldName === 'fifaType') {
+                        if (newValue === "") {
+                            delete card.fifaType;
+                        } else {
+                            card.fifaType = newValue;
+                        }
+                    } else if (fieldName === 'league') {
+                        card.league = newValue;
+                    } else {
+                        card[fieldName] = newValue;
+                    }
+                }
+            });
+
+            await saveToLocalStorage();
+            cancelBulkSelection();
+            resetPaginationAndRender();
+            alert("Úspešne upravené všetky označené karty.");
         }
 
         function changeAppFont(fontName) {
@@ -2011,6 +2151,8 @@
             isBulkSelectionMode = false;
             selectedCardsIds.clear();
             document.getElementById('collectionActionBar').style.display = 'none';
+            document.getElementById('bulkEditMenuContainer').style.display = 'none';
+            isBulkEditMenuOpen = false;
             document.querySelectorAll('.card-box').forEach(box => box.classList.remove('bulk-selected'));
         }
 
@@ -3174,7 +3316,7 @@
                         
                         const isHracType = ["Bez označenia", "Legenda", "Ultra Legenda", "Kvalitný hráč", "Talent"].includes(typeLabel);
                         const isTrenerType = ["Manažér"].includes(typeLabel);
-                        const isFifaType = ["Logo", "Lopta", "Trofej", "Štadión", "Ženy", "World Cup"].includes(typeLabel) || (!!card.fifaType && !isHracType && !isTrenerType);
+                        const isFifaType = ["Logo", "Lopta", "Trofej", "Štadión", "Ženy", "World Cup"].includes(typeLabel) || (!!c.fifaType && !isHracType && !isTrenerType);
 
                         const belongsToHrac = !card.fifaType || isHracType;
                         const belongsToTrener = isTrenerType;
